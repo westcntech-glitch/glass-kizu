@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>欠点マッピング</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#fff;--fg:#1d1d1f;--mut:#6b7280;--card:#f3f4f6;--bd:#d1d5db;--ac:#0b6bcb;--af:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181a;--fg:#ececec;--mut:#9ca3af;--card:#25272b;--bd:#3b3f45;--ac:#4c9aff;--af:#0a0a0a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17181a;--fg:#ececec;--mut:#9ca3af;--card:#25272b;--bd:#3b3f45;--ac:#4c9aff;--af:#0a0a0a;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,"Hiragino Sans","Noto Sans JP",sans-serif;padding:10px;max-width:720px;margin:auto}
+h1{font-size:17px;margin:2px 0 8px}
+input,select,button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:7px 8px;min-width:0}
+input[type=number]{width:78px}
+button{cursor:pointer}
+button.on,button.pri{background:var(--ac);color:var(--af);border-color:var(--ac)}
+.row,#tabs,#chips,.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0}
+#memo{width:100%}
+canvas{width:100%;height:auto;background:#fff;border:1px solid var(--bd);border-radius:10px;touch-action:manipulation}
+.hint{color:var(--mut);font-size:12.5px;margin:4px 0}
+.d{display:grid;grid-template-columns:1fr 54px 1fr;gap:5px;background:var(--card);border-radius:10px;padding:8px;margin:6px 0;align-items:center}
+.d .w{grid-column:1/-1;display:flex;gap:5px;align-items:center}
+.d .w select,.d .w input{flex:1}
+.d input,.d select{width:100%}
+.bar button{flex:1;padding:11px}
+#ov{position:fixed;inset:0;background:var(--bg);overflow:auto;padding:12px;z-index:5}
+#ov img{width:100%;border:1px solid var(--bd)}
+#ov textarea{width:100%;height:150px;background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:8px}
+</style></head><body>
+<h1>欠点マッピング</h1>
+<input id="memo" placeholder="件名メモ(製品・ロット・設備など)">
+<div id="tabs"></div>
+<div class="row">W<input id="w" type="number" inputmode="numeric">×H<input id="h" type="number" inputmode="numeric">
+<select id="shp"><option value="rect">矩形</option><option value="round">角丸</option></select>
+<label><input type="checkbox" id="none"> 欠点なし</label></div>
+<div id="chips"></div>
+<canvas id="cv" width="640" height="400"></canvas>
+<p class="hint">種類を選んで板をタップすると欠点を追加。位置は近い辺からの距離(mm)で自動入力されます。</p>
+<div id="list"></div>
+<div class="bar"><button class="pri" id="go">共有(画像+CSV)</button><button id="del">この板を削除</button></div>
+<div id="ov" hidden><p>この環境では共有できないため、画像を長押しで保存し、下の文面をコピーしてください。</p><img id="oi" alt=""><textarea id="ot"></textarea><p><button id="oc">閉じる</button></p></div>
+<script>
+const T={膜面:"#d97706",非膜:"#7c3aed",膜ハゲ:"#dc2626",ハゲ:"#e11d48",キズ:"#0891b2",ハマ:"#16a34a",汚れ:"#6b7280"};
+const $=id=>document.getElementById(id);
+const mk=()=>({w:1800,h:1000,sh:"rect",none:false,d:[]});
+let S,cur=0,ty="膜ハゲ";
+try{S=JSON.parse(localStorage.getItem("kt"));$("memo").value=localStorage.getItem("ktm")||""}catch(e){}
+if(!Array.isArray(S)||!S.length)S=[mk()];
+const save=()=>{try{localStorage.setItem("kt",JSON.stringify(S));localStorage.setItem("ktm",$("memo").value)}catch(e){}};
+const esc=s=>String(s).replace(/[&"<>]/g,c=>({"&":"&amp;",'"':"&quot;","<":"&lt;",">":"&gt;"}[c]));
+
+function geo(s,bx,by,bw,bh){const k=Math.min((bw-96)/s.w,(bh-100)/s.h),gw=s.w*k,gh=s.h*k;return{k,gw,gh,ox:bx+(bw-gw)/2,oy:by+52+(bh-96-gh)/2}}
+function lab(c,t,x,y,sz,col,al){c.font=sz+"px sans-serif";c.fillStyle=col;c.textAlign=al||"center";c.fillText(t,x,y)}
+function ln(c,a,b,x,y){c.beginPath();c.moveTo(a,b);c.lineTo(x,y);c.stroke()}
+function draw(c,s,i,bx,by,bw,bh){
+  const g=geo(s,bx,by,bw,bh),{k,gw,gh,ox,oy}=g;
+  c.fillStyle="#fff";c.fillRect(bx,by,bw,bh);
+  lab(c,"No."+(i+1)+"   "+s.w+" × "+s.h,bx+12,by+24,16,"#111","left");
+  c.beginPath();
+  if(s.sh=="round")c.roundRect(ox,oy,gw,gh,Math.min(gw,gh)*.18);else c.rect(ox,oy,gw,gh);
+  c.fillStyle="#f1f5f9";c.fill();c.lineWidth=2;c.strokeStyle="#111";c.stroke();
+  if(s.none)lab(c,"欠点なし",ox+gw/2,oy+gh/2+8,24,"#94a3b8");
+  c.lineWidth=1;
+  s.d.forEach(d=>{
+    const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,px=ox+ax*k,py=oy+ay*k,ex=d.xr?ox+gw:ox,ey=d.yr?oy+gh:oy;
+    c.strokeStyle="#64748b";c.setLineDash([4,3]);ln(c,px,py,ex,py);ln(c,px,py,px,ey);c.setLineDash([]);
+    lab(c,d.x,(px+ex)/2,py-4,11,"#475569");
+    c.save();c.translate(px-4,(py+ey)/2);c.rotate(-Math.PI/2);lab(c,d.y,0,0,11,"#475569");c.restore();
+    c.beginPath();c.arc(px,py,7,0,7);c.fillStyle=T[d.t]||"#111";c.fill();
+    const L=d.t+(d.n>1?"×"+d.n:"")+(d.s?" "+d.s:"");
+    const right=px<ox+gw*.65;
+    lab(c,L,px+(right?11:-11),py-9,13,T[d.t]||"#111",right?"left":"right");
+  });
+}
+function paint(){draw($("cv").getContext("2d"),S[cur],cur,0,0,640,400)}
+
+function render(){
+  const s=S[cur];
+  $("tabs").innerHTML=S.map((_,i)=>'<button data-t="'+i+'"'+(i==cur?' class="on"':'')+'>No.'+(i+1)+'</button>').join("")+(S.length<12?'<button data-t="+">＋</button>':"");
+  $("w").value=s.w;$("h").value=s.h;$("shp").value=s.sh;$("none").checked=s.none;
+  $("chips").innerHTML=Object.keys(T).map(t=>'<button data-c="'+t+'"'+(t==ty?' class="on"':'')+'>'+t+'</button>').join("");
+  $("list").innerHTML=s.d.map((d,i)=>'<div class="d">'+
+    '<select data-i="'+i+'" data-k="t">'+Object.keys(T).map(t=>'<option'+(t==d.t?' selected':'')+'>'+t+'</option>').join("")+'</select>'+
+    '<input type="number" inputmode="numeric" data-i="'+i+'" data-k="n" value="'+d.n+'" title="個数">'+
+    '<input data-i="'+i+'" data-k="s" value="'+esc(d.s)+'" placeholder="サイズ 例:5x5">'+
+    '<div class="w"><select data-i="'+i+'" data-k="xr"><option value="0"'+(d.xr?'':' selected')+'>左から</option><option value="1"'+(d.xr?' selected':'')+'>右から</option></select>'+
+    '<input type="number" inputmode="numeric" data-i="'+i+'" data-k="x" value="'+d.x+'">'+
+    '<select data-i="'+i+'" data-k="yr"><option value="0"'+(d.yr?'':' selected')+'>上から</option><option value="1"'+(d.yr?' selected':'')+'>下から</option></select>'+
+    '<input type="number" inputmode="numeric" data-i="'+i+'" data-k="y" value="'+d.y+'">'+
+    '<button data-x="'+i+'">✕</button></div></div>').join("");
+  paint();save();
+}
+$("tabs").onclick=e=>{const t=e.target.dataset.t;if(t==null)return;if(t=="+"){S.push(mk());cur=S.length-1}else cur=+t;render()};
+$("chips").onclick=e=>{if(e.target.dataset.c){ty=e.target.dataset.c;render()}};
+["w","h"].forEach(id=>$(id).onchange=()=>{S[cur][id]=Math.max(1,+$(id).value||1);render()});
+$("shp").onchange=()=>{S[cur].sh=$("shp").value;render()};
+$("none").onchange=()=>{S[cur].none=$("none").checked;if(S[cur].none)S[cur].d=[];render()};
+$("memo").onchange=save;
+$("list").onchange=e=>{const t=e.target,i=t.dataset.i;if(i==null)return;const k=t.dataset.k,d=S[cur].d[i];
+  d[k]=(k=="t"||k=="s")?t.value:+t.value||0;paint();save()};
+$("list").onclick=e=>{const x=e.target.dataset.x;if(x!=null){S[cur].d.splice(+x,1);render()}};
+$("cv").onclick=e=>{
+  const r=$("cv").getBoundingClientRect(),s=S[cur],g=geo(s,0,0,640,400),
+  ax=((e.clientX-r.left)*640/r.width-g.ox)/g.k,ay=((e.clientY-r.top)*400/r.height-g.oy)/g.k;
+  if(ax<0||ay<0||ax>s.w||ay>s.h)return;
+  const xr=ax>s.w/2?1:0,yr=ay>s.h/2?1:0;
+  s.none=false;s.d.push({t:ty,n:1,s:"",xr,x:Math.round(xr?s.w-ax:ax),yr,y:Math.round(yr?s.h-ay:ay)});render()};
+$("del").onclick=()=>{if(!confirm("No."+(cur+1)+"を削除しますか?"))return;S.splice(cur,1);if(!S.length)S=[mk()];cur=Math.min(cur,S.length-1);render()};
+$("oc").onclick=()=>{$("ov").hidden=true};
+
+const ymd=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0");return d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())};
+function csv(){
+  const r=[["符号","形状","寸法W","寸法H","欠点種別","個数","X基準","X距離","Y基準","Y距離","サイズ"]];
+  S.forEach((s,i)=>{const b=["No."+(i+1),s.sh=="round"?"角丸":"矩形",s.w,s.h];
+    if(!s.d.length)r.push(b.concat(["なし","","","","","",""]));
+    s.d.forEach(d=>r.push(b.concat([d.t,d.n,d.xr?"右":"左",d.x,d.yr?"下":"上",d.y,d.s])))});
+  return r.map(a=>a.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+}
+function summary(){
+  return ($("memo").value?$("memo").value+"\n":"")+S.map((s,i)=>"No."+(i+1)+" "+s.w+"×"+s.h+" "+(s.d.length?s.d.map(d=>d.t+(d.n>1?"×"+d.n:"")+(d.s?"("+d.s+")":"")+" "+(d.xr?"右":"左")+d.x+"/"+(d.yr?"下":"上")+d.y).join(" ; "):"欠点なし")).join("\n");
+}
+$("go").onclick=async()=>{
+  const n=S.length,rows=Math.ceil(n/2),H=56,c=document.createElement("canvas");
+  c.width=1280;c.height=H+rows*420;const x=c.getContext("2d");
+  x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
+  lab(x,"欠点報告  "+new Date().toLocaleDateString("ja-JP")+"  "+$("memo").value,14,36,20,"#111","left");
+  S.forEach((s,i)=>draw(x,s,i,(i%2)*640,H+Math.floor(i/2)*420,640,420));
+  const nm="欠点報告_"+ymd(),blob=await new Promise(r=>c.toBlob(r,"image/png"));
+  const files=[new File([blob],nm+".png",{type:"image/png"}),new File(["\ufeff"+csv()],nm+".csv",{type:"text/csv"})];
+  try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:nm,text:summary()});return}}catch(e){if(e.name=="AbortError")return}
+  $("oi").src=c.toDataURL("image/png");$("ot").value=summary()+"\n\n"+csv();$("ov").hidden=false;
+};
+render();
+</script></body></html>
