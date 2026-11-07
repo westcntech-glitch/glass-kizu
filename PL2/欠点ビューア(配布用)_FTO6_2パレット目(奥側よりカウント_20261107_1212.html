@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>欠点ビューア[矩形版]</title>
+<style>
+:root{--bg:#fff;--fg:#1d1d1f;--mut:#6b7280;--card:#f3f4f6;--bd:#d1d5db;--ac:#0b6bcb;--af:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181a;--fg:#ececec;--mut:#9ca3af;--card:#25272b;--bd:#3b3f45;--ac:#4c9aff;--af:#0a0a0a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17181a;--fg:#ececec;--mut:#9ca3af;--card:#25272b;--bd:#3b3f45;--ac:#4c9aff;--af:#0a0a0a;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;display:flex;flex-direction:column}
+header{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 14px;border-bottom:1px solid var(--bd)}
+header b{font-size:16px}header small{color:var(--mut);font-size:11px}
+select,button,label.b{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;cursor:pointer}
+button.pri{background:var(--ac);color:var(--af);border-color:var(--ac)}
+#info{color:var(--mut);margin-left:auto}
+main{flex:1;min-height:0;display:grid;grid-template-columns:210px minmax(0,1.3fr) minmax(0,1fr);gap:12px;padding:12px}
+.col{min-height:0;overflow:auto}
+.col h3{margin:0 0 6px;font-size:13px;color:var(--mut)}
+#gl button{display:block;width:100%;text-align:left;margin-bottom:5px;padding:8px 10px}
+#gl button.on{background:var(--ac);color:var(--af);border-color:var(--ac)}
+#gl small{display:block;opacity:.8}
+canvas{width:100%;height:auto;background:#fff;border:1px solid var(--bd);border-radius:8px;display:block;margin-bottom:10px}
+table{width:100%;border-collapse:collapse}
+th,td{border-bottom:1px solid var(--bd);padding:5px 7px;text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:600;position:sticky;top:0;background:var(--bg)}
+#dl tr{cursor:pointer}#dl tr.on{background:var(--ac);color:var(--af)}
+#dt{background:var(--card);border-radius:8px;padding:10px 12px}
+#empty{margin:40px;color:var(--mut)}
+#pa{display:none}
+@media print{
+  body{display:block;height:auto;background:#fff;color:#000}
+  body>*:not(#pa){display:none!important}
+  #pa{display:block}
+  .pg{break-after:page}.pg:last-child{break-after:auto}
+  #pa h2{font-size:15px;margin:0 0 6px}
+  #pa img{width:100%;display:block}
+  #pa table{font-size:11px;margin:6px 0}
+  #pa th,#pa td{border:1px solid #999;padding:3px 5px;color:#000;background:#fff}
+  .zg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  figure{margin:0;break-inside:avoid;font-size:11px}
+}
+</style></head><body>
+<header><b>欠点ビューア[矩形版]</b><small>v1.1 ・ 第一製造加工部 ・ 2026.11 matsubara</small>
+<label class="b" id="ol">データを開く(JSON)<input id="fi" type="file" accept=".json,application/json" hidden=""></label>
+<span>印刷:</span><select id="pm"><option value="one">単独(選択中の板)</option><option value="all">全部(全ての板)</option><option value="list">一覧リスト(表のみ)</option></select>
+<label><input type="checkbox" id="pz"> 拡大図も印刷</label><select id="po"><option value="portrait">縦</option><option value="landscape">横</option></select><button class="pri" id="pb">印刷 / PDF保存</button><button id="cb">CSV出力</button><button id="eb">配布用ファイルを出力</button>
+<span id="info">FTO6 2パレット目(奥側よりカウント)  2026/11/7 12:03:34</span></header>
+<div id="empty" hidden="">エクスポートしたJSONファイルを、「データを開く」またはこの画面へのドラッグ&amp;ドロップで読み込んでください。</div>
+<main id="mn">
+<div class="col"><h3>ガラスのリスト</h3><div id="gl"><button data-i="0" class="on">No.1<small>1800×1000  欠点なし</small></button><button data-i="1">No.2<small>1800×1000  欠点なし</small></button><button data-i="2">No.3<small>1800×1000  欠点なし</small></button><button data-i="3">No.4<small>1800×1000  欠点1件</small></button><button data-i="4">No.5<small>1800×1000  欠点なし</small></button><button data-i="5">No.6<small>1800×1000  欠点なし</small></button><button data-i="6">No.7<small>1800×1000  欠点なし</small></button><button data-i="7">No.8<small>1800×1000  欠点3件</small></button><button data-i="8">No.9<small>1800×1000  欠点2件</small></button><button data-i="9">No.10<small>1800×1000  欠点2件</small></button><button data-i="10">No.11<small>1800×1000  欠点なし</small></button><button data-i="11">No.12<small>1800×1000  欠点1件</small></button><button data-i="12">No.13<small>1800×1000  欠点なし</small></button><button data-i="13">No.14<small>1800×1000  欠点なし</small></button></div></div>
+<div class="col"><h3>板の全体</h3><canvas id="cv" width="800" height="500"></canvas><h3>欠点リスト(クリックで拡大。↑↓キーでも選択)</h3><table><thead><tr><th>No.</th><th>面</th><th>種類</th><th>個数</th><th>位置</th><th>状態・サイズ</th></tr></thead><tbody id="dl"><tr><td colspan="6">欠点なし</td></tr></tbody></table></div>
+<div class="col"><h3>拡大図</h3><canvas id="cz" width="800" height="500"></canvas><div id="dt"></div></div>
+</main>
+<div id="pa"></div>
+<script id="emb" type="application/json">{"ver":3,"face":["膜面","非膜面"],"dir":"←","memo":"FTO6 2パレット目(奥側よりカウント)","date":"2026/11/7 12:03:34","sheets":[{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]},{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]},{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]},{"w":1800,"h":1000,"sh":"rect","none":false,"d":[{"f":0,"n":1,"s":"3mm","dr":0,"dm":0,"xr":0,"yr":1,"x":757,"y":406,"t":"キズ"}]},{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]},{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]},{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]},{"w":1800,"h":1000,"sh":"rect","none":false,"d":[{"f":0,"n":1,"s":"15mm","dr":1,"dm":1,"xr":0,"yr":0,"x":625,"y":31,"t":"キズ"},{"f":0,"n":1,"s":"8mm","dr":1,"dm":1,"xr":1,"yr":0,"x":382,"y":195,"t":"キズ"},{"f":1,"n":1,"s":"180mm途切れて垂直に3本","dr":2,"dm":1,"xr":0,"yr":0,"x":347,"y":150,"t":"キズ"}]},{"w":1800,"h":1000,"sh":"rect","none":false,"d":[{"f":0,"n":1,"s":"1mm","dr":0,"dm":2,"xr":1,"yr":1,"x":107,"y":99,"t":"キズ"},{"f":0,"n":1,"s":"20mm","dr":1,"dm":1,"xr":0,"yr":0,"x":620,"y":30,"t":"キズ"}]},{"w":1800,"h":1000,"sh":"rect","none":false,"d":[{"f":0,"n":1,"s":"153mm","dr":1,"dm":1,"xr":1,"yr":0,"x":812,"y":123,"t":"キズ"},{"f":0,"n":1,"s":"15mm","dr":1,"dm":1,"xr":0,"yr":1,"x":784,"y":378,"t":"キズ"}]},{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]},{"w":1800,"h":1000,"sh":"rect","none":false,"d":[{"f":0,"n":1,"s":"12mm2本続けてキズ","dr":1,"dm":1,"xr":1,"yr":0,"x":844,"y":330,"t":"キズ"}]},{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]},{"w":1800,"h":1000,"sh":"rect","none":true,"d":[]}]}</script>
+<script>
+const T={キズ:"#0891b2",膜ハゲ:"#dc2626",汚れ:"#6b7280",ガラス粉:"#ca8a04",異物:"#9333ea",アワ:"#2563eb","ハマ・カケ":"#16a34a",ソゲ:"#c2410c",その他:"#374151"},DR=["指定なし","横方向","縦方向","斜め"],DM=["指定なし","長さ","大きさ","幅","深さ"],MG={"ハマ":"ハマ・カケ","ハゲ":"膜ハゲ"};
+let F=["非搬送面","搬送面"],EMB=false;
+const tn=d=>d.t=="その他"?"":d.t,stx=d=>[d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s||""].filter(Boolean).join(" ");
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let D=null,cur=0,sel=-1;
+const pos=d=>(d.xr?"右":"左")+"から"+d.x+"mm / "+(d.yr?"下":"上")+"から"+d.y+"mm";
+const lbl=(d,j)=>(j+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.n>1?"×"+d.n:"")+(stx(d)?" "+stx(d):"");
+const sumTxt=(d,i)=>lbl(d,i)+"  "+pos(d);
+function geo(s,bx,by,bw,bh,v){
+  if(v){const k=Math.min(bw/(v.x1-v.x0),bh/(v.y1-v.y0));return{k,ox:bx-v.x0*k,oy:by-v.y0*k,gw:s.w*k,gh:s.h*k}}
+  const k=Math.min((bw-96)/s.w,(bh-100)/s.h),gw=s.w*k,gh=s.h*k;return{k,gw,gh,ox:bx+(bw-gw)/2,oy:by+52+(bh-96-gh)/2}}
+function zview(s,d){
+  const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,ex=d.xr?s.w:0,ey=d.yr?s.h:0;
+  let x0=Math.min(ax,ex),x1=Math.max(ax,ex),y0=Math.min(ay,ey),y1=Math.max(ay,ey);
+  const mx=Math.max((x1-x0)*.35,60),my=Math.max((y1-y0)*.35,60);x0-=mx;x1+=mx;y0-=my;y1+=my;
+  const w=x1-x0,h=y1-y0,a=1.6;
+  if(w/h<a){const nw=h*a;x0-=(nw-w)/2;x1=x0+nw}else{const nh=w/a;y0-=(nh-h)/2;y1=y0+nh}
+  return{x0,y0,x1,y1}}
+function arrow(c,x,y,d,m){const L=((d=="←"||d=="→")?26:18)*m,h=7*m,u={"←":[-1,0],"→":[1,0],"↑":[0,-1],"↓":[0,1]}[d],ux=u[0],uy=u[1],x1=x+ux*L,y1=y+uy*L;
+  c.strokeStyle="#111";c.fillStyle="#111";c.lineWidth=2.5;ln(c,x-ux*L,y-uy*L,x1,y1);
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x1-ux*h-uy*h*.8,y1-uy*h+ux*h*.8);c.lineTo(x1-ux*h+uy*h*.8,y1-uy*h-ux*h*.8);c.closePath();c.fill();c.lineWidth=1;
+  lab(c,"搬送方向",x-(uy?10*m:L+6*m),y+4*m,12*m,"#111","right")}
+function lab(c,t,x,y,sz,col,al){c.font=sz+"px sans-serif";c.fillStyle=col;c.textAlign=al||"center";c.fillText(t,x,y)}
+function ln(c,a,b,x,y){c.beginPath();c.moveTo(a,b);c.lineTo(x,y);c.stroke()}
+function draw(c,s,i,bx,by,bw,bh,o){
+  o=o||{};const v=o.view,m=o.f||1,{k,gw,gh,ox,oy}=geo(s,bx,by,bw,bh,v),fs=(v?14:11)*m;
+  c.save();c.beginPath();c.rect(bx,by,bw,bh);c.clip();
+  c.fillStyle="#fff";c.fillRect(bx,by,bw,bh);
+  if(v)lab(c,"拡大",bx+10,by+20*m,13*m,"#64748b","left");else lab(c,"No."+(i+1)+"   "+s.w+" × "+s.h,bx+12,by+24*m,16*m,"#111","left");
+  if(!v&&D&&D.dir)arrow(c,bx+bw-50*m,by+28*m,D.dir,m);
+  c.beginPath();
+  if(s.sh=="circle")c.ellipse(ox+gw/2,oy+gh/2,gw/2,gh/2,0,0,7);else c.rect(ox,oy,gw,gh);
+  c.fillStyle="#f1f5f9";c.fill();c.lineWidth=2;c.strokeStyle="#111";c.stroke();
+  if(s.none&&!v)lab(c,"欠点なし",ox+gw/2,oy+gh/2+8,24*m,"#94a3b8");
+  c.lineWidth=1;
+  s.d.forEach((d,j)=>{
+    if(o.only!=null&&o.only!==j)return;
+    const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,px=ox+ax*k,py=oy+ay*k,ex=d.xr?ox+gw:ox,ey=d.yr?oy+gh:oy,col=T[d.t]||"#111",r=(v?9:7)*m;
+    if(!o.compact||v||o.hi===j){
+      c.strokeStyle="#64748b";c.setLineDash([4,3]);ln(c,px,py,ex,py);ln(c,px,py,px,ey);c.setLineDash([]);
+      lab(c,d.x,(px+ex)/2,py-4,fs,"#475569");
+      c.save();c.translate(px-4,(py+ey)/2);c.rotate(-Math.PI/2);lab(c,d.y,0,0,fs,"#475569");c.restore()}
+    c.fillStyle=col;
+    if(d.f){c.fillRect(px-r,py-r,2*r,2*r)}else{c.beginPath();c.arc(px,py,r,0,7);c.fill()}
+    if(o.hi===j){c.lineWidth=2.5;c.strokeStyle="#dc2626";c.beginPath();c.arc(px,py,r+4,0,7);c.stroke();c.beginPath();c.arc(px,py,r+9,0,7);c.stroke();c.lineWidth=1}
+    const right=px-bx<bw*.65,L=o.compact&&!v?String(j+1):lbl(d,j);
+    lab(c,L,px+(right?r+4:-r-4),py-r-2,(v?15:13)*m,col,right?"left":"right");
+  });
+  c.restore();
+}
+function load(j){
+  if(!j||!Array.isArray(j.sheets)||!j.sheets.length)throw 0;
+  j.sheets.forEach(s=>{if(s.sh!="circle")s.sh="rect";s.d=(s.d||[]).map(d=>{d=Object.assign({f:0,n:1,s:"",dr:0,dm:0,xr:0,yr:0,x:0,y:0},d);d.t=MG[d.t]||d.t;if(!T[d.t])d.t="その他";return d})});
+  if(Array.isArray(j.face)&&j.face.length==2)F=j.face;
+  D=j;cur=0;sel=-1;if(!EMB)try{localStorage.setItem("ktv",JSON.stringify(j))}catch(e){}show()}
+function show(){
+  $("empty").hidden=!!D;$("mn").hidden=!D;if(!D)return;
+  const s=D.sheets[cur];
+  $("info").textContent=(D.memo||"")+"  "+(D.date||"");
+  $("gl").innerHTML=D.sheets.map((t,i)=>'<button data-i="'+i+'"'+(i==cur?' class="on"':'')+'>No.'+(i+1)+'<small>'+t.w+'×'+t.h+'  '+(t.d.length?'欠点'+t.d.length+'件':'欠点なし')+'</small></button>').join("");
+  $("dl").innerHTML=s.d.map((d,j)=>'<tr data-j="'+j+'"'+(j==sel?' class="on"':'')+'><td>'+(j+1)+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+'</td><td>'+d.n+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join("")||'<tr><td colspan="6">欠点なし</td></tr>';
+  draw($("cv").getContext("2d"),s,cur,0,0,800,500,{hi:sel,compact:true});
+  const z=$("cz").getContext("2d"),d=s.d[sel];
+  if(d){draw(z,s,cur,0,0,800,500,{only:sel,view:zview(s,d)});
+    $("dt").innerHTML="<b>"+esc(sumTxt(d,sel))+"</b><br>面: "+F[d.f]+" / 種類: "+esc(tn(d))+" / 個数: "+d.n+"<br>位置: "+pos(d)+"<br>状態・サイズ: "+(esc(stx(d))||"-")}
+  else{z.fillStyle="#fff";z.fillRect(0,0,800,500);lab(z,"欠点リストから選択してください",400,250,22,"#94a3b8");$("dt").textContent=""}
+}
+$("gl").onclick=e=>{const b=e.target.closest("button");if(b){cur=+b.dataset.i;sel=-1;show()}};
+$("dl").onclick=e=>{const r=e.target.closest("tr");if(r&&r.dataset.j!=null){sel=+r.dataset.j;show()}};
+document.addEventListener("keydown",e=>{
+  if(!D||(e.key!="ArrowDown"&&e.key!="ArrowUp"))return;e.preventDefault();
+  const n=D.sheets[cur].d.length;if(!n)return;sel=e.key=="ArrowDown"?Math.min(n-1,sel+1):Math.max(0,sel<0?0:sel-1);show()});
+function rd(f){const r=new FileReader();r.onload=()=>{try{load(JSON.parse(r.result))}catch(e){alert("読み込めないファイルです。入力アプリのエクスポートで作成したJSONを選んでください。")}};r.readAsText(f)}
+$("fi").onchange=e=>{if(e.target.files[0])rd(e.target.files[0]);e.target.value=""};
+document.addEventListener("dragover",e=>e.preventDefault());
+document.addEventListener("drop",e=>{e.preventDefault();if(e.dataTransfer.files[0])rd(e.dataTransfer.files[0])});
+function img(s,i,o,w,h){const c=document.createElement("canvas");c.width=w;c.height=h;draw(c.getContext("2d"),s,i,0,0,w,h,o);return'<img src="'+c.toDataURL("image/png")+'" alt="">'}
+const head=()=>'<div style="font-size:11px;color:#444">欠点報告  '+esc(D.memo||"")+'  '+esc(D.date||"")+'</div>';
+function page(s,i,zm){
+  return'<section class="pg">'+head()+'<h2>No.'+(i+1)+'  '+s.w+'×'+s.h+(s.d.length?'':'  欠点なし')+'</h2>'+img(s,i,{compact:true,f:1.3},1000,620)+
+  (s.d.length?'<table><tr><th>No.</th><th>面</th><th>種類</th><th>個数</th><th>位置</th><th>状態・サイズ</th></tr>'+s.d.map((d,j)=>'<tr><td>'+(j+1)+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+'</td><td>'+d.n+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join("")+'</table>':'')+
+  (zm&&s.d.length?'<div class="zg">'+s.d.map((d,j)=>'<figure>'+img(s,i,{only:j,view:zview(s,d),f:1.1},640,400)+'<figcaption>'+esc(sumTxt(d,j))+'</figcaption></figure>').join("")+'</div>':'')+'</section>'}
+$("pb").onclick=()=>{
+  if(!D){alert("先にデータを開いてください");return}
+  const m=$("pm").value,zm=$("pz").checked;let h;
+  if(m=="one")h=page(D.sheets[cur],cur,zm);
+  else if(m=="all")h=D.sheets.map((s,i)=>page(s,i,zm)).join("");
+  else h='<section class="pg">'+head()+'<table><tr><th>符号</th><th>寸法</th><th>面</th><th>種類</th><th>個数</th><th>位置</th><th>状態・サイズ</th></tr>'+
+    D.sheets.map((s,i)=>s.d.length?s.d.map(d=>'<tr><td>No.'+(i+1)+'</td><td>'+s.w+'×'+s.h+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+'</td><td>'+d.n+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join(""):'<tr><td>No.'+(i+1)+'</td><td>'+s.w+'×'+s.h+'</td><td colspan="5">欠点なし</td></tr>').join("")+'</table></section>';
+  $("pa").innerHTML=h;let st=document.getElementById("pst");if(!st){st=document.createElement("style");st.id="pst";document.head.appendChild(st)}
+  st.textContent="@page{size:A4 "+$("po").value+";margin:10mm}";
+  const t0=document.title;document.title="欠点報告_"+ymd();window.onafterprint=()=>{document.title=t0};
+  setTimeout(()=>window.print(),150)};
+const ymd=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0"),m=((D&&D.memo)||"").replace(/[\\\/:*?"<>|\s]+/g,"_").replace(/^_+|_+$/g,"").slice(0,20);return(m?m+"_":"")+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes())};
+function dl(txt,nm,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type}));a.download=nm;a.click()}
+$("cb").onclick=()=>{
+  if(!D){alert("先にデータを開いてください");return}
+  const r=[["符号","形状","寸法W","寸法H","面","欠点種別","個数","X基準","X距離","Y基準","Y距離","方向","寸法種別","状態・サイズ"]];
+  D.sheets.forEach((s,i)=>{const b=["No."+(i+1),s.sh=="circle"?"丸形":"矩形",s.w,s.h];
+    if(!s.d.length)r.push(b.concat(["","なし","","","","","","","",""]));
+    s.d.forEach(d=>r.push(b.concat([F[d.f],d.t,d.n,d.xr?"右":"左",d.x,d.yr?"下":"上",d.y,d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s])))});
+  dl("\ufeff"+r.map(a=>a.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n"),"欠点一覧_"+ymd()+".csv","text/csv")};
+$("eb").onclick=()=>{
+  if(!D){alert("先にデータを開いてください");return}
+  const h=document.documentElement.cloneNode(true);
+  h.querySelector("#emb").textContent=JSON.stringify(Object.assign({},D,{face:F})).replace(/</g,"\\u003c");
+  h.querySelector("#pa").innerHTML="";
+  dl("<!DOCTYPE html>\n"+h.outerHTML,"欠点ビューア(配布用)_"+ymd()+".html","text/html")};
+try{const e=$("emb").textContent.trim();
+  if(e){EMB=true;["ol","eb"].forEach(i=>$(i).hidden=true);load(JSON.parse(e))}
+  else{const j=JSON.parse(localStorage.getItem("ktv"));if(j)load(j)}}catch(e){}
+</script>
+</body></html>
