@@ -34,12 +34,13 @@ canvas{width:100%;height:auto;background:#fff;border:1px solid var(--bd);border-
 .cd>h2{font-size:13px;margin:0 0 4px;color:var(--mut)}
 .cd h3{font-size:12.5px;margin:12px 0 4px;color:var(--mut);border-top:1px solid var(--bd);padding-top:8px}
 details.cd>summary{font-weight:600;cursor:pointer}
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.55);vertical-align:-2px;margin-right:4px}
 #rst{border-color:#dc2626;color:#dc2626}
 #ov{position:fixed;inset:0;background:var(--bg);overflow:auto;padding:12px;z-index:5}
 #ov img{width:100%;border:1px solid var(--bd)}
 #ov textarea{width:100%;height:150px;background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:8px}
 </style></head><body>
-<h1>欠点マッピング[矩形版]<small>v1.1 ・ 第一製造加工部 ・ 2026.11 matsubara</small></h1>
+<h1>欠点マッピング[矩形版]<small>v1.2 ・ 第一製造加工部 ・ 2026.11 matsubara</small></h1>
 <input id="memo" placeholder="件名メモ(製品・ロット・設備など)">
 <section class="cd"><h2>① 板の設定</h2>
 <div id="tabs"></div>
@@ -61,11 +62,15 @@ details.cd>summary{font-weight:600;cursor:pointer}
 <div class="row">面の呼称<select id="fp"><option value="0">非搬送面 / 搬送面</option><option value="1">トップ面 / ボトム面</option><option value="2">膜面 / 非膜面</option><option value="3">任意の文字</option></select></div>
 <div class="row" id="fcu"><input id="fa" placeholder="1つ目(例: 非搬送面)"><input id="fb" placeholder="2つ目(例: 搬送面)"></div>
 <div class="row">搬送進行方向<select id="dp"><option value="">表記無し</option><option value="←">←</option><option value="→">→</option><option value="↑">↑</option><option value="↓">↓</option></select></div>
+<div class="row">「その他」の表示名<input id="oth" placeholder="空欄=表示なし"></div>
+<div id="cl"></div><div class="row"><button id="cr">欠点の色を初期値に戻す</button></div>
 <h3>初期化</h3>
 <p class="hint">板・欠点・件名メモを全て削除します(面の呼称と搬送進行方向は残ります)。データはこの端末のブラウザ内にだけ保存されているので、先にエクスポートしてください。</p><button id="rst">全データを初期化…</button></details>
 <div id="ov" hidden><p>この環境では共有できないため、画像を長押しで保存し、下の文面をコピーしてください。</p><img id="oi" alt=""><textarea id="ot"></textarea><p><button id="oc">閉じる</button></p></div>
 <script>
-const T={キズ:"#0891b2",膜ハゲ:"#dc2626",汚れ:"#6b7280",ガラス粉:"#ca8a04",異物:"#9333ea",アワ:"#2563eb","ハマ・カケ":"#16a34a",ソゲ:"#c2410c",その他:"#374151"};
+const CP={赤:"#dc2626",青:"#2563eb",黄:"#facc15",黒:"#111111",紫:"#9333ea",緑:"#16a34a",橙:"#f97316",水色:"#06b6d4",茶:"#92400e",ピンク:"#ec4899"},CT=Object.assign({},CP,{黄:"#a16207",橙:"#c2410c",水色:"#0e7490",ピンク:"#be185d"});
+const TDEF={キズ:"赤",膜ハゲ:"青",汚れ:"黄",ガラス粉:"緑",異物:"紫",アワ:"水色","ハマ・カケ":"黒",ソゲ:"橙",その他:"茶"};
+const T=TDEF;let COL=Object.assign({},TDEF);const cn=t=>COL[t]||"黒",colOf=t=>CP[cn(t)],txtOf=t=>CT[cn(t)];
 const PRE=[["非搬送面","搬送面"],["トップ面","ボトム面"],["膜面","非膜面"]],DR=["指定なし","横方向","縦方向","斜め"],DM=["指定なし","長さ","大きさ","幅","深さ"],MAXN=25;
 const $=id=>document.getElementById(id);
 const mk=()=>({w:1800,h:1000,sh:"rect",none:true,d:[]});
@@ -73,13 +78,13 @@ let S,cur=0,ty="キズ",fc=0,sel=-1,cfg={p:0,a:"",b:"",dir:""},F=PRE[0];
 try{const raw=localStorage.getItem("kt");try{if(raw&&!localStorage.getItem("kt_bak"))localStorage.setItem("kt_bak",raw)}catch(e){}S=JSON.parse(raw);$("memo").value=localStorage.getItem("ktm")||"";cfg=JSON.parse(localStorage.getItem("ktc"))||cfg}catch(e){}
 if(!Array.isArray(S)||!S.length)S=[mk()];
 const MG={"ハマ":"ハマ・カケ","ハゲ":"膜ハゲ"};
-if(cfg.dir==null)cfg.dir="";
+if(cfg.dir==null)cfg.dir="";if(!cfg.col)cfg.col={};if(cfg.oth==null)cfg.oth="";
 const norm=A=>A.forEach(s=>{s.d=s.d||[];s.w=s.w||1800;s.h=s.h||1000;if(s.sh!="circle")s.sh="rect";s.d.forEach(d=>{if(d.f==null)d.f=0;d.t=MG[d.t]||d.t;if(!T[d.t])d.t="その他";d.dr=d.dr||0;d.dm=d.dm||0})});
 norm(S);
-const applyF=()=>{F=cfg.p<3?PRE[cfg.p]:[cfg.a||"1つ目",cfg.b||"2つ目"]};applyF();
+const applyF=()=>{F=cfg.p<3?PRE[cfg.p]:[cfg.a||"1つ目",cfg.b||"2つ目"]};applyF();const applyC=()=>{COL=Object.assign({},TDEF,cfg.col)};applyC();
 const save=()=>{try{localStorage.setItem("kt",JSON.stringify(S));localStorage.setItem("ktm",$("memo").value);localStorage.setItem("ktc",JSON.stringify(cfg))}catch(e){}};
 const esc=s=>String(s).replace(/[&"<>]/g,c=>({"&":"&amp;",'"':"&quot;","<":"&lt;",">":"&gt;"}[c]));
-const tn=d=>d.t=="その他"?"":d.t;
+const tn=d=>d.t=="その他"?(cfg.oth||""):d.t,tname=t=>t=="その他"&&cfg.oth?cfg.oth:t;
 const stx=d=>[d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s||""].filter(Boolean).join(" ");
 const lbl=(d,j)=>(j+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.n>1?"×"+d.n:"")+(stx(d)?" "+stx(d):"");
 const sumTxt=(d,i)=>(i+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.n>1?"×"+d.n:"")+"  "+(d.xr?"右":"左")+d.x+" / "+(d.yr?"下":"上")+d.y+(stx(d)?"  "+stx(d):"");
@@ -113,15 +118,16 @@ function draw(c,s,i,bx,by,bw,bh,o){
   c.lineWidth=1;
   s.d.forEach((d,j)=>{
     if(o.only!=null&&o.only!==j)return;
-    const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,px=ox+ax*k,py=oy+ay*k,ex=d.xr?ox+gw:ox,ey=d.yr?oy+gh:oy,col=T[d.t]||"#111",r=v?9:7;
+    const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,px=ox+ax*k,py=oy+ay*k,ex=d.xr?ox+gw:ox,ey=d.yr?oy+gh:oy,col=colOf(d.t),r=v?9:7;
     if(!o.compact||v||o.hi===j){c.strokeStyle="#64748b";c.setLineDash([4,3]);ln(c,px,py,ex,py);ln(c,px,py,px,ey);c.setLineDash([]);
     lab(c,d.x,(px+ex)/2,py-4,fs,"#475569");
     c.save();c.translate(px-4,(py+ey)/2);c.rotate(-Math.PI/2);lab(c,d.y,0,0,fs,"#475569");c.restore()}
     c.fillStyle=col;
     if(d.f){c.fillRect(px-r,py-r,2*r,2*r)}else{c.beginPath();c.arc(px,py,r,0,7);c.fill()}
+    c.strokeStyle="rgba(0,0,0,.6)";c.lineWidth=1;if(d.f)c.strokeRect(px-r,py-r,2*r,2*r);else{c.beginPath();c.arc(px,py,r,0,7);c.stroke()}
     if(o.hi===j&&!v){c.lineWidth=2.5;c.strokeStyle="#dc2626";c.beginPath();c.arc(px,py,r+4,0,7);c.stroke();c.beginPath();c.arc(px,py,r+9,0,7);c.stroke();c.lineWidth=1}
     const right=px-bx<bw*.65;
-    lab(c,o.compact&&!v&&o.hi!==j?String(j+1):lbl(d,j),px+(right?r+4:-r-4),py-r-2,v?15:13,col,right?"left":"right");
+    lab(c,o.compact&&!v&&o.hi!==j?String(j+1):lbl(d,j),px+(right?r+4:-r-4),py-r-2,v?15:13,txtOf(d.t),right?"left":"right");
   });
   c.restore();
 }
@@ -136,14 +142,16 @@ function render(){
   $("w").value=s.w;$("h").value=s.h;$("shp").value=s.sh;$("none").checked=s.none;
   $("fp").value=cfg.p;$("fa").value=cfg.a;$("fb").value=cfg.b;$("fcu").hidden=cfg.p!=3;
   $("faces").innerHTML=F.map((t,i)=>'<button data-f="'+i+'"'+(i==fc?' class="on"':'')+'>'+esc(t)+'</button>').join("");
-  $("chips").innerHTML=Object.keys(T).map(t=>'<button data-c="'+t+'"'+(t==ty?' class="on"':'')+'>'+t+'</button>').join("");
-  $("dp").value=cfg.dir;
+  $("chips").innerHTML=Object.keys(T).map(t=>'<button data-c="'+t+'"'+(t==ty?' class="on"':'')+'><span class="sw" style="background:'+colOf(t)+'"></span>'+tname(t)+'</button>').join("");
+  const used=(t,n)=>Object.keys(T).some(u=>u!=t&&COL[u]==n);
+  $("cl").innerHTML='<p class="hint">欠点の色(他の種類が使っている色を選ぶと、その種類と色が入れ替わります)</p>'+Object.keys(T).map(t=>'<div class="row"><span class="sw" style="background:'+colOf(t)+'"></span><span style="flex:1">'+tname(t)+'</span><select data-ct="'+t+'">'+Object.keys(CP).map(n=>'<option value="'+n+'"'+(COL[t]==n?' selected':'')+''+'>'+n+''+'</option>').join("")+'</select></div>').join("");
+  $("dp").value=cfg.dir;$("oth").value=cfg.oth;
   $("list").innerHTML=s.d.map((d,i)=>{
-    const b='<button class="sm" id="sm'+i+'" data-sel="'+i+'">'+esc(sumTxt(d,i))+'</button>';
+    const b='<button class="sm" id="sm'+i+'" data-sel="'+i+'">'+(i==sel?'':'<span class="sw" style="background:'+colOf(d.t)+'"></span> ')+esc(sumTxt(d,i))+'</button>';
     if(i!=sel)return b;
     return'<div class="sr">'+b+'<button class="dx" data-x="1">削除</button></div><div class="d" id="ed">'+
     '<select data-k="f">'+opts(F,d.f)+'</select>'+
-    '<select data-k="t">'+Object.keys(T).map(t=>'<option'+(t==d.t?' selected':'')+'>'+t+'</option>').join("")+'</select>'+
+    '<select data-k="t">'+Object.keys(T).map(t=>'<option value="'+t+'"'+(t==d.t?' selected':'')+'>'+tname(t)+'</option>').join("")+'</select>'+
     '<input type="number" inputmode="numeric" data-k="n" value="'+d.n+'" title="個数">'+
     '<div class="w"><select data-k="xr">'+opts(["左から","右から"],d.xr)+'</select>'+
     '<input type="number" inputmode="numeric" data-k="x" value="'+d.x+'">'+
@@ -156,6 +164,9 @@ function render(){
 $("tabs").onclick=e=>{const t=e.target.dataset.t;if(t==null)return;if(t=="+"){S.push(mk());cur=S.length-1}else cur=+t;sel=-1;render()};
 $("faces").onclick=e=>{if(e.target.dataset.f){fc=+e.target.dataset.f;render()}};
 $("chips").onclick=e=>{if(e.target.dataset.c){ty=e.target.dataset.c;render()}};
+$("cl").onchange=e=>{const t=e.target.dataset.ct;if(!t)return;const nc=e.target.value,old=COL[t];cfg.col=Object.assign({},COL);const u=Object.keys(T).find(x=>x!=t&&cfg.col[x]==nc);if(u)cfg.col[u]=old;cfg.col[t]=nc;applyC();render()};
+$("cr").onclick=()=>{cfg.col={};applyC();render()};
+$("oth").onchange=()=>{cfg.oth=$("oth").value.trim();render()};
 $("dp").onchange=()=>{cfg.dir=$("dp").value;render()};
 ["w","h"].forEach(id=>$(id).onchange=()=>{S[cur][id]=Math.max(1,+$(id).value||1);render()});
 $("shp").onchange=()=>{S[cur].sh=$("shp").value;render()};
@@ -191,7 +202,7 @@ $("del").onclick=()=>{if(!confirm("No."+(cur+1)+"を削除しますか?"))return
 $("oc").onclick=()=>{$("ov").hidden=true};
 const ymd=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0"),m=$("memo").value.replace(/[\\\/:*?"<>|\s]+/g,"_").replace(/^_+|_+$/g,"").slice(0,20);return(m?m+"_":"")+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes())};
 $("ex").onclick=async()=>{
-  const nm="欠点データ_"+ymd(),txt=JSON.stringify({ver:3,face:F,dir:cfg.dir,memo:$("memo").value,date:new Date().toLocaleString("ja-JP"),sheets:S}),f=new File([txt],nm+".json",{type:"application/json"});
+  const nm="欠点データ_"+ymd(),txt=JSON.stringify({ver:4,face:F,dir:cfg.dir,oth:cfg.oth,col:COL,memo:$("memo").value,date:new Date().toLocaleString("ja-JP"),sheets:S}),f=new File([txt],nm+".json",{type:"application/json"});
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:nm});return}}catch(e){if(e.name=="AbortError")return}
   try{const a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=nm+".json";a.click()}catch(e){}
   $("oi").hidden=true;$("ot").value=txt;$("ov").hidden=false};
@@ -207,20 +218,21 @@ $("fi").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
     if(!confirm("現在のデータは、読み込んだ内容に置き換わります。\n先にエクスポートしましたか?\n続行しますか?"))return;
     S=j.sheets;norm(S);$("memo").value=j.memo||"";
     if(Array.isArray(j.face)&&j.face.length==2){const k=PRE.findIndex(q=>q[0]==j.face[0]&&q[1]==j.face[1]);if(k>=0)cfg.p=k;else{cfg.p=3;cfg.a=j.face[0];cfg.b=j.face[1]}}
-    cfg.dir=j.dir||"";applyF();cur=0;sel=-1;render()};r.readAsText(f)};
+    cfg.dir=j.dir||"";cfg.oth=j.oth||"";cfg.col={};if(j.col&&typeof j.col=="object")Object.keys(j.col).forEach(t=>{if(T[t]&&CP[j.col[t]])cfg.col[t]=j.col[t]});applyC();applyF();cur=0;sel=-1;render()};r.readAsText(f)};
 function csv(){
-  const r=[["符号","形状","寸法W","寸法H","面","欠点種別","個数","X基準","X距離","Y基準","Y距離","方向","寸法種別","状態・サイズ"]];
+  const r=[["符号","形状","寸法W","寸法H","面","欠点種別","色","個数","X基準","X距離","Y基準","Y距離","方向","寸法種別","状態・サイズ"]];
   S.forEach((s,i)=>{const b=["No."+(i+1),s.sh=="circle"?"丸形":"矩形",s.w,s.h];
-    if(!s.d.length)r.push(b.concat(["","なし","","","","","","","",""]));
-    s.d.forEach(d=>r.push(b.concat([F[d.f],d.t,d.n,d.xr?"右":"左",d.x,d.yr?"下":"上",d.y,d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s])))});
+    if(!s.d.length)r.push(b.concat(["","なし","","","","","","","","",""]));
+    s.d.forEach(d=>r.push(b.concat([F[d.f],tname(d.t),cn(d.t),d.n,d.xr?"右":"左",d.x,d.yr?"下":"上",d.y,d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s])))});
   return r.map(a=>a.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n")}
 function summary(){
-  return ($("memo").value?$("memo").value+"\n":"")+S.map((s,i)=>"No."+(i+1)+" "+s.w+"×"+s.h+(s.sh=="circle"?" 丸形":"")+"\n"+(s.d.length?s.d.map((d,j)=>"  "+sumTxt(d,j)).join("\n"):"  欠点なし")).join("\n")}
+  return ($("memo").value?$("memo").value+"\n":"")+S.map((s,i)=>"No."+(i+1)+" "+s.w+"×"+s.h+(s.sh=="circle"?" 丸形":"")+"\n"+(s.d.length?s.d.map((d,j)=>"  "+sumTxt(d,j)+" ["+cn(d.t)+"]").join("\n"):"  欠点なし")).join("\n")}
 $("go").onclick=async()=>{
-  const n=S.length,rows=Math.ceil(n/2),H=56,c=document.createElement("canvas");
+  const n=S.length,rows=Math.ceil(n/2),H=80,c=document.createElement("canvas");
   c.width=1280;c.height=H+rows*420;const x=c.getContext("2d");
   x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
   lab(x,"欠点報告  "+new Date().toLocaleDateString("ja-JP")+"  "+$("memo").value,14,36,20,"#111","left");
+  let lx=14;[...new Set(S.flatMap(s=>s.d.map(d=>d.t)))].forEach(t=>{x.fillStyle=colOf(t);x.fillRect(lx,50,14,14);x.strokeStyle="#000";x.strokeRect(lx,50,14,14);const tx=cn(t)+"="+tname(t);lab(x,tx,lx+19,62,14,"#111","left");lx+=19+x.measureText(tx).width+18});
   S.forEach((s,i)=>draw(x,s,i,(i%2)*640,H+Math.floor(i/2)*420,640,420));
   const nm="欠点報告_"+ymd(),blob=await new Promise(r=>c.toBlob(r,"image/png"));
   const files=[new File([blob],nm+".png",{type:"image/png"}),new File(["\ufeff"+csv()],nm+".csv",{type:"text/csv"})];
