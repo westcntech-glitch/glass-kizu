@@ -32,15 +32,21 @@ canvas{width:100%;height:auto;background:#fff;border:1px solid var(--bd);border-
 .g2{display:grid;grid-template-columns:1fr 1fr}
 .cd{border:1px solid var(--bd);border-radius:12px;padding:8px 10px;margin:12px 0}
 .cd>h2{font-size:13px;margin:0 0 4px;color:var(--mut)}
-.cd h3{font-size:12.5px;margin:12px 0 4px;color:var(--mut);border-top:1px solid var(--bd);padding-top:8px}
+.cd h3,.swin h3{font-size:12.5px;margin:12px 0 4px;color:var(--mut);border-top:1px solid var(--bd);padding-top:8px}
 details.cd>summary{font-weight:600;cursor:pointer}
 .sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.55);vertical-align:-2px;margin-right:4px}
+.lb{flex:0 0 2.6em;font-size:12px;color:var(--mut)}.d>button{padding:7px 4px}
+#sw{position:fixed;inset:0;background:var(--bg);overflow:auto;z-index:8;padding:10px}.swin{max-width:720px;margin:0 auto}
+.swh{display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--bg);padding:6px 0;border-bottom:1px solid var(--bd);margin-bottom:8px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.top h1{flex:1}.top button{white-space:nowrap;margin-top:2px;background:#ea580c;color:#fff;border-color:#c2410c;font-weight:600}
+.chipin{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--bd);border-radius:8px;padding:2px 8px;background:var(--card)}
+.chipin.on{background:var(--ac);border-color:var(--ac)}.chipin input{border:0;background:transparent;padding:4px 0;width:7em;color:var(--fg)}.chipin.on input{color:var(--af)}.chipin.on input::placeholder{color:var(--af);opacity:.7}
 #rst{border-color:#dc2626;color:#dc2626}
-#ov{position:fixed;inset:0;background:var(--bg);overflow:auto;padding:12px;z-index:5}
+#ov{position:fixed;inset:0;background:var(--bg);overflow:auto;padding:12px;z-index:9}
 #ov img{width:100%;border:1px solid var(--bd)}
 #ov textarea{width:100%;height:150px;background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:8px}
 </style></head><body>
-<h1>欠点マッピング[矩形版]<small>v1.2 ・ 第一製造加工部 ・ 2026.11 matsubara</small></h1>
+<div class="top"><h1>欠点マッピング[矩形版]<small>v1.2 ・ 第一製造加工部 ・ 2026.11 matsubara</small></h1><button id="sb">設定・データ操作</button></div>
 <input id="memo" placeholder="件名メモ(製品・ロット・設備など)">
 <section class="cd"><h2>① 板の設定</h2>
 <div id="tabs"></div>
@@ -54,18 +60,17 @@ details.cd>summary{font-weight:600;cursor:pointer}
 <p class="hint">面と種類を選んで板をタップすると追加され、入力欄へ移動します。選択中の欠点は赤い二重丸で示され、位置は数値で入力します。</p>
 <canvas id="cz" width="640" height="400" hidden></canvas></section>
 <section class="cd"><h2>③ 欠点リスト</h2><div id="list"></div></section>
-<details class="cd set"><summary>④ 設定・データ操作</summary>
+<div id="sw" hidden><div class="swin"><div class="swh"><b>設定・データ操作</b><button id="sx">閉じる</button></div>
 <h3>データ操作</h3>
 <div class="bar g2"><button id="del">この板を削除</button><button id="im">インポート</button><button class="pri" id="go">共有(画像+CSV)</button><button id="ex">エクスポート</button></div>
 <input type="file" id="fi" accept=".json,application/json" hidden>
 <h3>表示設定</h3>
 <div class="row">面の呼称<select id="fp"><option value="0">非搬送面 / 搬送面</option><option value="1">トップ面 / ボトム面</option><option value="2">膜面 / 非膜面</option><option value="3">任意の文字</option></select></div>
 <div class="row" id="fcu"><input id="fa" placeholder="1つ目(例: 非搬送面)"><input id="fb" placeholder="2つ目(例: 搬送面)"></div>
-<div class="row">搬送進行方向<select id="dp"><option value="">表記無し</option><option value="←">←</option><option value="→">→</option><option value="↑">↑</option><option value="↓">↓</option></select></div>
-<div class="row">「その他」の表示名<input id="oth" placeholder="空欄=表示なし"></div>
+<div class="row">搬送進行方向<select id="dp"><option value="">表記無し</option><option value="←">←</option><option value="→">→</option><option value="↑">↑</option><option value="↓">↓</option><option value="パレット積載図">パレット積載図</option></select></div>
 <div id="cl"></div><div class="row"><button id="cr">欠点の色を初期値に戻す</button></div>
 <h3>初期化</h3>
-<p class="hint">板・欠点・件名メモを全て削除します(面の呼称と搬送進行方向は残ります)。データはこの端末のブラウザ内にだけ保存されているので、先にエクスポートしてください。</p><button id="rst">全データを初期化…</button></details>
+<p class="hint">板・欠点・件名メモを全て削除します(面の呼称と搬送進行方向は残ります)。データはこの端末のブラウザ内にだけ保存されているので、先にエクスポートしてください。</p><button id="rst">全データを初期化…</button></div></div>
 <div id="ov" hidden><p>この環境では共有できないため、画像を長押しで保存し、下の文面をコピーしてください。</p><img id="oi" alt=""><textarea id="ot"></textarea><p><button id="oc">閉じる</button></p></div>
 <script>
 const CP={赤:"#dc2626",青:"#2563eb",黄:"#facc15",黒:"#111111",紫:"#9333ea",緑:"#16a34a",橙:"#f97316",水色:"#06b6d4",茶:"#92400e",ピンク:"#ec4899"},CT=Object.assign({},CP,{黄:"#a16207",橙:"#c2410c",水色:"#0e7490",ピンク:"#be185d"});
@@ -78,26 +83,29 @@ let S,cur=0,ty="キズ",fc=0,sel=-1,cfg={p:0,a:"",b:"",dir:""},F=PRE[0];
 try{const raw=localStorage.getItem("kt");try{if(raw&&!localStorage.getItem("kt_bak"))localStorage.setItem("kt_bak",raw)}catch(e){}S=JSON.parse(raw);$("memo").value=localStorage.getItem("ktm")||"";cfg=JSON.parse(localStorage.getItem("ktc"))||cfg}catch(e){}
 if(!Array.isArray(S)||!S.length)S=[mk()];
 const MG={"ハマ":"ハマ・カケ","ハゲ":"膜ハゲ"};
-if(cfg.dir==null)cfg.dir="";if(!cfg.col)cfg.col={};if(cfg.oth==null)cfg.oth="";
-const norm=A=>A.forEach(s=>{s.d=s.d||[];s.w=s.w||1800;s.h=s.h||1000;if(s.sh!="circle")s.sh="rect";s.d.forEach(d=>{if(d.f==null)d.f=0;d.t=MG[d.t]||d.t;if(!T[d.t])d.t="その他";d.dr=d.dr||0;d.dm=d.dm||0})});
+if(cfg.dir==null)cfg.dir="";if(!cfg.col)cfg.col={};if(!cfg.col)cfg.col={};if(cfg.tx==null)cfg.tx="その他";
+const tn=d=>d.t=="その他"?(d.tx!=null?d.tx:"その他"):d.t,tname=t=>t;
+const posS=d=>(d.xr?"右":"左")+d.x+"/"+(d.yr?"下":"上")+d.y+(d.ln?" → "+(d.xr2?"右":"左")+d.x2+"/"+(d.yr2?"下":"上")+d.y2+" 長さ約"+d.len+"mm":"");
+const calcLen=(s,d)=>{if(d.ln){const a=[d.xr?s.w-d.x:d.x,d.yr?s.h-d.y:d.y],b=[d.xr2?s.w-d.x2:d.x2,d.yr2?s.h-d.y2:d.y2];d.len=Math.round(Math.hypot(a[0]-b[0],a[1]-b[1]))}};
+const norm=A=>A.forEach(s=>{s.d=s.d||[];s.w=s.w||1800;s.h=s.h||1000;if(s.sh!="circle")s.sh="rect";s.d.forEach(d=>{if(d.f==null)d.f=0;d.t=MG[d.t]||d.t;if(!T[d.t])d.t="その他";d.dr=d.dr||0;d.dm=d.dm||0;d.ln=d.ln||0;if(d.ln){d.xr2=d.xr2||0;d.yr2=d.yr2||0;d.x2=d.x2||0;d.y2=d.y2||0}calcLen(s,d)})});
 norm(S);
 const applyF=()=>{F=cfg.p<3?PRE[cfg.p]:[cfg.a||"1つ目",cfg.b||"2つ目"]};applyF();const applyC=()=>{COL=Object.assign({},TDEF,cfg.col)};applyC();
 const save=()=>{try{localStorage.setItem("kt",JSON.stringify(S));localStorage.setItem("ktm",$("memo").value);localStorage.setItem("ktc",JSON.stringify(cfg))}catch(e){}};
 const esc=s=>String(s).replace(/[&"<>]/g,c=>({"&":"&amp;",'"':"&quot;","<":"&lt;",">":"&gt;"}[c]));
-const tn=d=>d.t=="その他"?(cfg.oth||""):d.t,tname=t=>t=="その他"&&cfg.oth?cfg.oth:t;
 const stx=d=>[d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s||""].filter(Boolean).join(" ");
-const lbl=(d,j)=>(j+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.n>1?"×"+d.n:"")+(stx(d)?" "+stx(d):"");
-const sumTxt=(d,i)=>(i+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.n>1?"×"+d.n:"")+"  "+(d.xr?"右":"左")+d.x+" / "+(d.yr?"下":"上")+d.y+(stx(d)?"  "+stx(d):"");
+const lbl=(d,j,nl)=>(j+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.ln&&!nl?" 長さ約"+d.len+"mm":"")+(stx(d)?" "+stx(d):"");
+const sumTxt=(d,i)=>(i+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+"  "+posS(d)+(stx(d)?"  "+stx(d):"");
 
 function geo(s,bx,by,bw,bh,v){
   if(v){const k=Math.min(bw/(v.x1-v.x0),bh/(v.y1-v.y0));return{k,ox:bx-v.x0*k,oy:by-v.y0*k,gw:s.w*k,gh:s.h*k}}
   const k=Math.min((bw-96)/s.w,(bh-100)/s.h),gw=s.w*k,gh=s.h*k;return{k,gw,gh,ox:bx+(bw-gw)/2,oy:by+52+(bh-96-gh)/2}}
 function zview(s,d){
-  const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,ex=d.xr?s.w:0,ey=d.yr?s.h:0;
-  let x0=Math.min(ax,ex),x1=Math.max(ax,ex),y0=Math.min(ay,ey),y1=Math.max(ay,ey);
+  const pts=[[d.xr,d.x,d.yr,d.y]];if(d.ln)pts.push([d.xr2,d.x2,d.yr2,d.y2]);
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  pts.forEach(a=>{const ax=a[0]?s.w-a[1]:a[1],ay=a[2]?s.h-a[3]:a[3],ex=a[0]?s.w:0,ey=a[2]?s.h:0;x0=Math.min(x0,ax,ex);x1=Math.max(x1,ax,ex);y0=Math.min(y0,ay,ey);y1=Math.max(y1,ay,ey)});
   const mx=Math.max((x1-x0)*.35,60),my=Math.max((y1-y0)*.35,60);x0-=mx;x1+=mx;y0-=my;y1+=my;
-  const w=x1-x0,h=y1-y0;
-  if(w/h<1.6){const nw=h*1.6;x0-=(nw-w)/2;x1=x0+nw}else{const nh=w/1.6;y0-=(nh-h)/2;y1=y0+nh}
+  const w=x1-x0,h=y1-y0,a=1.6;
+  if(w/h<a){const nw=h*a;x0-=(nw-w)/2;x1=x0+nw}else{const nh=w/a;y0-=(nh-h)/2;y1=y0+nh}
   return{x0,y0,x1,y1}}
 function arrow(c,x,y,d){const L=(d=="←"||d=="→")?26:18,h=7,u={"←":[-1,0],"→":[1,0],"↑":[0,-1],"↓":[0,1]}[d],ux=u[0],uy=u[1],x1=x+ux*L,y1=y+uy*L;
   c.strokeStyle="#111";c.fillStyle="#111";c.lineWidth=2.5;ln(c,x-ux*L,y-uy*L,x1,y1);
@@ -110,24 +118,29 @@ function draw(c,s,i,bx,by,bw,bh,o){
   c.save();c.beginPath();c.rect(bx,by,bw,bh);c.clip();
   c.fillStyle="#fff";c.fillRect(bx,by,bw,bh);
   if(v)lab(c,"拡大",bx+10,by+20,13,"#64748b","left");else lab(c,"No."+(i+1)+"   "+s.w+" × "+s.h,bx+12,by+24,16,"#111","left");
-  if(!v&&cfg.dir)arrow(c,bx+bw-50,by+28,cfg.dir);
+  if(!v&&cfg.dir&&cfg.dir!="パレット積載図")arrow(c,bx+bw-50,by+28,cfg.dir);
   c.beginPath();
   if(s.sh=="circle")c.ellipse(ox+gw/2,oy+gh/2,gw/2,gh/2,0,0,7);else c.rect(ox,oy,gw,gh);
   c.fillStyle="#f1f5f9";c.fill();c.lineWidth=2;c.strokeStyle="#111";c.stroke();
+  if(!v&&cfg.dir=="パレット積載図"){lab(c,"パレット積載図",bx+bw-12,by+24,14,"#92400e","right");c.fillStyle="#b45309";c.fillRect(ox-8,oy+gh,gw+16,10);c.fillStyle="#78350f";c.fillRect(ox-8,oy+gh+10,gw+16,3)}
   if(s.none&&!v)lab(c,"欠点なし",ox+gw/2,oy+gh/2+8,24,"#94a3b8");
   c.lineWidth=1;
   s.d.forEach((d,j)=>{
     if(o.only!=null&&o.only!==j)return;
-    const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,px=ox+ax*k,py=oy+ay*k,ex=d.xr?ox+gw:ox,ey=d.yr?oy+gh:oy,col=colOf(d.t),r=v?9:7;
-    if(!o.compact||v||o.hi===j){c.strokeStyle="#64748b";c.setLineDash([4,3]);ln(c,px,py,ex,py);ln(c,px,py,px,ey);c.setLineDash([]);
-    lab(c,d.x,(px+ex)/2,py-4,fs,"#475569");
-    c.save();c.translate(px-4,(py+ey)/2);c.rotate(-Math.PI/2);lab(c,d.y,0,0,fs,"#475569");c.restore()}
-    c.fillStyle=col;
-    if(d.f){c.fillRect(px-r,py-r,2*r,2*r)}else{c.beginPath();c.arc(px,py,r,0,7);c.fill()}
-    c.strokeStyle="rgba(0,0,0,.6)";c.lineWidth=1;if(d.f)c.strokeRect(px-r,py-r,2*r,2*r);else{c.beginPath();c.arc(px,py,r,0,7);c.stroke()}
+    const col=colOf(d.t),r=(v?9:7),P=[[d.xr,d.x,d.yr,d.y]];if(d.ln)P.push([d.xr2,d.x2,d.yr2,d.y2]);
+    const Q=P.map(a=>{const ax=a[0]?s.w-a[1]:a[1],ay=a[2]?s.h-a[3]:a[3];return{px:ox+ax*k,py:oy+ay*k,ex:a[0]?ox+gw:ox,ey:a[2]?oy+gh:oy,dx:a[1],dy:a[3]}});
+    if(!o.compact||v||o.hi===j){[Q[0]].forEach(q=>{c.strokeStyle="#64748b";c.lineWidth=1;c.setLineDash([4,3]);ln(c,q.px,q.py,q.ex,q.py);ln(c,q.px,q.py,q.px,q.ey);c.setLineDash([]);
+      lab(c,q.dx,(q.px+q.ex)/2,q.py-4,fs,"#475569");c.save();c.translate(q.px-4,(q.py+q.ey)/2);c.rotate(-Math.PI/2);lab(c,q.dy,0,0,fs,"#475569");c.restore()})}
+    if(d.ln){c.lineCap="round";c.strokeStyle="rgba(0,0,0,.6)";c.lineWidth=(v?6:5);ln(c,Q[0].px,Q[0].py,Q[1].px,Q[1].py);c.strokeStyle=col;c.lineWidth=(v?4:3);ln(c,Q[0].px,Q[0].py,Q[1].px,Q[1].py);c.lineCap="butt";c.lineWidth=1}
+    if(d.ln&&d.len>0&&(!o.compact||v||o.hi===j)){const a0=Math.atan2(Q[1].py-Q[0].py,Q[1].px-Q[0].px);let nx=-Math.sin(a0),ny=Math.cos(a0);const sy=d.yr?-1:1;if(ny*sy<0||(Math.abs(ny)<1e-6&&nx<0)){nx=-nx;ny=-ny}
+      const ta=(a0>Math.PI/2||a0<=-Math.PI/2)?a0+Math.PI:a0,off=(v?15:12);
+      c.save();c.translate((Q[0].px+Q[1].px)/2+nx*off,(Q[0].py+Q[1].py)/2+ny*off);c.rotate(ta);c.font="bold "+((v?14:12))+"px sans-serif";c.textAlign="center";c.textBaseline="middle";c.lineWidth=3;c.strokeStyle="#fff";c.strokeText(d.len+"mm",0,0);c.fillStyle="#111";c.fillText(d.len+"mm",0,0);c.restore()}
+    Q.forEach((q,i)=>{const rr=i?r*.7:r;c.fillStyle=col;if(d.f){c.fillRect(q.px-rr,q.py-rr,2*rr,2*rr)}else{c.beginPath();c.arc(q.px,q.py,rr,0,7);c.fill()}
+      c.strokeStyle="rgba(0,0,0,.6)";c.lineWidth=1;if(d.f)c.strokeRect(q.px-rr,q.py-rr,2*rr,2*rr);else{c.beginPath();c.arc(q.px,q.py,rr,0,7);c.stroke()}});
+    const px=Q[0].px,py=Q[0].py;
     if(o.hi===j&&!v){c.lineWidth=2.5;c.strokeStyle="#dc2626";c.beginPath();c.arc(px,py,r+4,0,7);c.stroke();c.beginPath();c.arc(px,py,r+9,0,7);c.stroke();c.lineWidth=1}
     const right=px-bx<bw*.65;
-    lab(c,o.compact&&!v&&o.hi!==j?String(j+1):lbl(d,j),px+(right?r+4:-r-4),py-r-2,v?15:13,txtOf(d.t),right?"left":"right");
+    lab(c,o.compact&&!v&&o.hi!==j?String(j+1):lbl(d,j,1),px+(right?r+4:-r-4),py-r-2,v?15:13,txtOf(d.t),right?"left":"right");
   });
   c.restore();
 }
@@ -137,36 +150,44 @@ function paint(){
   if(sel>=0&&s.d[sel]){z.hidden=false;draw(z.getContext("2d"),s,cur,0,0,640,400,{only:sel,view:zview(s,s.d[sel])})}else z.hidden=true}
 const opts=(a,v)=>a.map((t,j)=>'<option value="'+j+'"'+(j==v?' selected':'')+'>'+t+'</option>').join("");
 function render(){
+  S.forEach(t=>t.d.forEach(x=>calcLen(t,x)));
   const s=S[cur];
   $("tabs").innerHTML=S.map((_,i)=>'<button data-t="'+i+'"'+(i==cur?' class="on"':'')+'>No.'+(i+1)+'</button>').join("")+(S.length<MAXN?'<button data-t="+">＋</button>':"");
   $("w").value=s.w;$("h").value=s.h;$("shp").value=s.sh;$("none").checked=s.none;
   $("fp").value=cfg.p;$("fa").value=cfg.a;$("fb").value=cfg.b;$("fcu").hidden=cfg.p!=3;
   $("faces").innerHTML=F.map((t,i)=>'<button data-f="'+i+'"'+(i==fc?' class="on"':'')+'>'+esc(t)+'</button>').join("");
-  $("chips").innerHTML=Object.keys(T).map(t=>'<button data-c="'+t+'"'+(t==ty?' class="on"':'')+'><span class="sw" style="background:'+colOf(t)+'"></span>'+tname(t)+'</button>').join("");
+  $("chips").innerHTML=Object.keys(T).map(t=>t=="その他"?'<span class="chipin'+(t==ty?' on':'')+'" data-c="その他"><span class="sw" style="background:'+colOf(t)+'"></span><input id="oth" value="'+esc(cfg.tx)+'" placeholder="その他" maxlength="20"></span>':'<button data-c="'+t+'"'+(t==ty?' class="on"':'')+'><span class="sw" style="background:'+colOf(t)+'"></span>'+tname(t)+'</button>').join("");
   const used=(t,n)=>Object.keys(T).some(u=>u!=t&&COL[u]==n);
-  $("cl").innerHTML='<p class="hint">欠点の色(他の種類が使っている色を選ぶと、その種類と色が入れ替わります)</p>'+Object.keys(T).map(t=>'<div class="row"><span class="sw" style="background:'+colOf(t)+'"></span><span style="flex:1">'+tname(t)+'</span><select data-ct="'+t+'">'+Object.keys(CP).map(n=>'<option value="'+n+'"'+(COL[t]==n?' selected':'')+''+'>'+n+''+'</option>').join("")+'</select></div>').join("");
-  $("dp").value=cfg.dir;$("oth").value=cfg.oth;
+  $("cl").innerHTML='<p class="hint">欠点の色(他の種類が使っている色を選ぶと、その種類と色が入れ替わります)</p>'+Object.keys(T).map(t=>'<div class="row"><span class="sw" style="background:'+colOf(t)+'"></span>'+(t=="その他"?'<input id="oth2" value="'+esc(cfg.tx)+'" placeholder="その他" maxlength="20" style="flex:1">':'<span style="flex:1">'+tname(t)+'</span>')+'<select data-ct="'+t+'">'+Object.keys(CP).map(n=>'<option value="'+n+'"'+(COL[t]==n?' selected':'')+''+'>'+n+''+'</option>').join("")+'</select></div>').join("");
+  $("dp").value=cfg.dir;
   $("list").innerHTML=s.d.map((d,i)=>{
     const b='<button class="sm" id="sm'+i+'" data-sel="'+i+'">'+(i==sel?'':'<span class="sw" style="background:'+colOf(d.t)+'"></span> ')+esc(sumTxt(d,i))+'</button>';
     if(i!=sel)return b;
     return'<div class="sr">'+b+'<button class="dx" data-x="1">削除</button></div><div class="d" id="ed">'+
     '<select data-k="f">'+opts(F,d.f)+'</select>'+
     '<select data-k="t">'+Object.keys(T).map(t=>'<option value="'+t+'"'+(t==d.t?' selected':'')+'>'+tname(t)+'</option>').join("")+'</select>'+
-    '<input type="number" inputmode="numeric" data-k="n" value="'+d.n+'" title="個数">'+
-    '<div class="w"><select data-k="xr">'+opts(["左から","右から"],d.xr)+'</select>'+
+    '<button data-top="1">↑上へ</button>'+
+    (d.t=="その他"?'<div class="w"><input data-k="tx" value="'+esc(d.tx!=null?d.tx:"その他")+'" placeholder="種類名を自由に入力"></div>':'')+
+    '<div class="w"><span class="lb">'+(d.ln?"始点":"位置")+'</span><select data-k="xr">'+opts(["左から","右から"],d.xr)+'</select>'+
     '<input type="number" inputmode="numeric" data-k="x" value="'+d.x+'">'+
     '<select data-k="yr">'+opts(["上から","下から"],d.yr)+'</select>'+
-    '<input type="number" inputmode="numeric" data-k="y" value="'+d.y+'"><button data-top="1">↑上へ</button></div>'+
+    '<input type="number" inputmode="numeric" data-k="y" value="'+d.y+'"><button data-fm="1">形式:'+(d.ln?"線":"点")+'</button></div>'+
+    (d.ln?'<div class="w"><span class="lb">終点</span><select data-k="xr2">'+opts(["左から","右から"],d.xr2)+'</select>'+
+    '<input type="number" inputmode="numeric" data-k="x2" value="'+d.x2+'">'+
+    '<select data-k="yr2">'+opts(["上から","下から"],d.yr2)+'</select>'+
+    '<input type="number" inputmode="numeric" data-k="y2" value="'+d.y2+'"></div>':'')+
     '<div class="w"><select class="ss" data-k="dr">'+opts(DR,d.dr)+'</select><select class="ss" data-k="dm">'+opts(DM,d.dm)+'</select>'+
     '<input data-k="s" value="'+esc(d.s)+'" placeholder="状態・サイズ"><button data-mic="1">🎤</button></div></div>'}).join("");
   paint();save();
 }
 $("tabs").onclick=e=>{const t=e.target.dataset.t;if(t==null)return;if(t=="+"){S.push(mk());cur=S.length-1}else cur=+t;sel=-1;render()};
 $("faces").onclick=e=>{if(e.target.dataset.f){fc=+e.target.dataset.f;render()}};
-$("chips").onclick=e=>{if(e.target.dataset.c){ty=e.target.dataset.c;render()}};
+$("chips").onclick=e=>{const b=e.target.closest("[data-c]");if(!b)return;ty=b.dataset.c;if(e.target.id=="oth"){[...$("chips").children].forEach(x=>x.classList.toggle("on",x.dataset.c==ty));return}render()};
+function setTx(v,src){cfg.tx=v;const d=S[cur].d[sel];if(d&&d.t=="その他"){d.tx=v;const b=$("sm"+sel);if(b)b.textContent=sumTxt(d,sel);const tb=document.querySelector('[data-k="tx"]');if(tb)tb.value=v;paint()}["oth","oth2"].forEach(i=>{const e=$(i);if(e&&e!==src)e.value=v});save()}
+$("chips").oninput=e=>{if(e.target.id=="oth")setTx(e.target.value,e.target)};
+$("cl").oninput=e=>{if(e.target.id=="oth2")setTx(e.target.value,e.target)};
 $("cl").onchange=e=>{const t=e.target.dataset.ct;if(!t)return;const nc=e.target.value,old=COL[t];cfg.col=Object.assign({},COL);const u=Object.keys(T).find(x=>x!=t&&cfg.col[x]==nc);if(u)cfg.col[u]=old;cfg.col[t]=nc;applyC();render()};
 $("cr").onclick=()=>{cfg.col={};applyC();render()};
-$("oth").onchange=()=>{cfg.oth=$("oth").value.trim();render()};
 $("dp").onchange=()=>{cfg.dir=$("dp").value;render()};
 ["w","h"].forEach(id=>$(id).onchange=()=>{S[cur][id]=Math.max(1,+$(id).value||1);render()});
 $("shp").onchange=()=>{S[cur].sh=$("shp").value;render()};
@@ -177,7 +198,7 @@ $("memo").onchange=save;
 $("fp").onchange=()=>{cfg.p=+$("fp").value;applyF();render()};
 ["fa","fb"].forEach(id=>$(id).onchange=()=>{cfg[id=="fa"?"a":"b"]=$(id).value.trim();applyF();render()});
 $("list").onchange=e=>{const t=e.target,k=t.dataset.k;if(!k)return;const d=S[cur].d[sel];
-  d[k]=(k=="t"||k=="s")?t.value:+t.value||0;$("sm"+sel).textContent=sumTxt(d,sel);paint();save()};
+  d[k]=(k=="t"||k=="s"||k=="tx")?t.value:+t.value||0;if(k=="t"){render();return}calcLen(S[cur],d);$("sm"+sel).textContent=sumTxt(d,sel);paint();save()};
 function mic(){
   const R=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!R){alert("この端末では音声入力ボタンが使えません。キーボードのマイクボタンをお使いください。");return}
@@ -189,6 +210,7 @@ $("list").onclick=e=>{const t=e.target.dataset;
   if(t.sel!=null){sel=sel==+t.sel?-1:+t.sel;render()}
   else if(t.x){if(confirm("この欠点を削除しますか?")){const s=S[cur];s.d.splice(sel,1);if(!s.d.length)s.none=true;sel=-1;render()}}
   else if(t.top)window.scrollTo({top:0,behavior:"smooth"})
+  else if(t.fm){const s=S[cur],d=s.d[sel];if(!d.ln){d.ln=1;d.xr2=d.xr;d.yr2=d.yr;d.x2=Math.min(s.w,d.xr?Math.max(0,d.x-100):d.x+100);d.y2=d.y}else d.ln=0;render()}
   else if(t.mic)mic()};
 $("cv").onclick=e=>{
   const r=$("cv").getBoundingClientRect(),s=S[cur],g=geo(s,0,0,640,400),
@@ -196,13 +218,14 @@ $("cv").onclick=e=>{
   if(ax<0||ay<0||ax>s.w||ay>s.h)return;
   if(s.sh=="circle"&&((ax-s.w/2)/(s.w/2))**2+((ay-s.h/2)/(s.h/2))**2>1)return;
   const xr=ax>s.w/2?1:0,yr=ay>s.h/2?1:0;
-  s.none=false;s.d.push({f:fc,t:ty,n:1,dr:0,dm:0,s:"",xr,x:Math.round(xr?s.w-ax:ax),yr,y:Math.round(yr?s.h-ay:ay)});sel=s.d.length-1;render();
+  s.none=false;s.d.push({f:fc,t:ty,tx:cfg.tx,ln:0,dr:0,dm:0,s:"",xr,x:Math.round(xr?s.w-ax:ax),yr,y:Math.round(yr?s.h-ay:ay)});sel=s.d.length-1;render();
   const ed=$("ed");if(ed)ed.scrollIntoView({behavior:"smooth",block:"center"})};
 $("del").onclick=()=>{if(!confirm("No."+(cur+1)+"を削除しますか?"))return;S.splice(cur,1);if(!S.length)S=[mk()];cur=Math.min(cur,S.length-1);sel=-1;render()};
+$("sb").onclick=()=>{$("sw").hidden=false;$("sw").scrollTop=0};$("sx").onclick=()=>{$("sw").hidden=true};
 $("oc").onclick=()=>{$("ov").hidden=true};
 const ymd=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0"),m=$("memo").value.replace(/[\\\/:*?"<>|\s]+/g,"_").replace(/^_+|_+$/g,"").slice(0,20);return(m?m+"_":"")+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+"_"+p(d.getHours())+p(d.getMinutes())};
 $("ex").onclick=async()=>{
-  const nm="欠点データ_"+ymd(),txt=JSON.stringify({ver:4,face:F,dir:cfg.dir,oth:cfg.oth,col:COL,memo:$("memo").value,date:new Date().toLocaleString("ja-JP"),sheets:S}),f=new File([txt],nm+".json",{type:"application/json"});
+  const nm="欠点データ_"+ymd(),txt=exJ(),f=new File([txt],nm+".json",{type:"application/json"});
   try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:nm});return}}catch(e){if(e.name=="AbortError")return}
   try{const a=document.createElement("a");a.href=URL.createObjectURL(f);a.download=nm+".json";a.click()}catch(e){}
   $("oi").hidden=true;$("ot").value=txt;$("ov").hidden=false};
@@ -210,7 +233,7 @@ $("rst").onclick=()=>{
   const code=String(1000+Math.floor(Math.random()*9000)),a=prompt("板・欠点・件名メモを全て削除します。\n先にエクスポートでバックアップしてください。\n\n続けるには確認番号 "+code+" を半角で入力してください");
   if(a===null)return;
   if(a.replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-65248)).trim()!==code){alert("番号が一致しないため中止しました");return}
-  S=[mk()];cur=0;sel=-1;$("memo").value="";try{localStorage.removeItem("kt");localStorage.removeItem("ktm")}catch(e){}render()};
+  S=[mk()];cur=0;sel=-1;$("memo").value="";try{localStorage.removeItem("kt");localStorage.removeItem("ktm")}catch(e){}$("sw").hidden=true;render()};
 $("im").onclick=()=>$("fi").click();
 $("fi").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
   const r=new FileReader();r.onload=()=>{let j;
@@ -218,13 +241,15 @@ $("fi").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
     if(!confirm("現在のデータは、読み込んだ内容に置き換わります。\n先にエクスポートしましたか?\n続行しますか?"))return;
     S=j.sheets;norm(S);$("memo").value=j.memo||"";
     if(Array.isArray(j.face)&&j.face.length==2){const k=PRE.findIndex(q=>q[0]==j.face[0]&&q[1]==j.face[1]);if(k>=0)cfg.p=k;else{cfg.p=3;cfg.a=j.face[0];cfg.b=j.face[1]}}
-    cfg.dir=j.dir||"";cfg.oth=j.oth||"";cfg.col={};if(j.col&&typeof j.col=="object")Object.keys(j.col).forEach(t=>{if(T[t]&&CP[j.col[t]])cfg.col[t]=j.col[t]});applyC();applyF();cur=0;sel=-1;render()};r.readAsText(f)};
-function csv(){
-  const r=[["符号","形状","寸法W","寸法H","面","欠点種別","色","個数","X基準","X距離","Y基準","Y距離","方向","寸法種別","状態・サイズ"]];
-  S.forEach((s,i)=>{const b=["No."+(i+1),s.sh=="circle"?"丸形":"矩形",s.w,s.h];
-    if(!s.d.length)r.push(b.concat(["","なし","","","","","","","","",""]));
-    s.d.forEach(d=>r.push(b.concat([F[d.f],tname(d.t),cn(d.t),d.n,d.xr?"右":"左",d.x,d.yr?"下":"上",d.y,d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s])))});
+    cfg.dir=j.dir||"";cfg.col={};if(j.col&&typeof j.col=="object")Object.keys(j.col).forEach(t=>{if(T[t]&&CP[j.col[t]])cfg.col[t]=j.col[t]});applyC();applyF();cur=0;sel=-1;$("sw").hidden=true;render()};r.readAsText(f)};
+function csvText(SH){
+  const r=[["符号","形状","寸法W","寸法H","面","欠点種別","色","X基準","X距離","Y基準","Y距離","形式","終点X基準","終点X距離","終点Y基準","終点Y距離","長さ(mm)","方向","寸法種別","状態・サイズ"]];
+  SH.forEach((s,i)=>{const b=["No."+(i+1),s.sh=="circle"?"丸形":"矩形",s.w,s.h];
+    if(!s.d.length)r.push(b.concat(["","なし"].concat(Array(14).fill(""))));
+    s.d.forEach(d=>r.push(b.concat([F[d.f],d.t=="その他"?(tn(d)||"その他"):d.t,cn(d.t),d.xr?"右":"左",d.x,d.yr?"下":"上",d.y,d.ln?"線":"点",d.ln?(d.xr2?"右":"左"):"",d.ln?d.x2:"",d.ln?(d.yr2?"下":"上"):"",d.ln?d.y2:"",d.ln?d.len:"",d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s])))});
   return r.map(a=>a.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n")}
+const exJ=()=>JSON.stringify({ver:5,face:F,dir:cfg.dir,col:COL,memo:$("memo").value,date:new Date().toLocaleString("ja-JP"),sheets:S});
+function csv(){return csvText(S)}
 function summary(){
   return ($("memo").value?$("memo").value+"\n":"")+S.map((s,i)=>"No."+(i+1)+" "+s.w+"×"+s.h+(s.sh=="circle"?" 丸形":"")+"\n"+(s.d.length?s.d.map((d,j)=>"  "+sumTxt(d,j)+" ["+cn(d.t)+"]").join("\n"):"  欠点なし")).join("\n")}
 $("go").onclick=async()=>{
@@ -235,8 +260,9 @@ $("go").onclick=async()=>{
   let lx=14;[...new Set(S.flatMap(s=>s.d.map(d=>d.t)))].forEach(t=>{x.fillStyle=colOf(t);x.fillRect(lx,50,14,14);x.strokeStyle="#000";x.strokeRect(lx,50,14,14);const tx=cn(t)+"="+tname(t);lab(x,tx,lx+19,62,14,"#111","left");lx+=19+x.measureText(tx).width+18});
   S.forEach((s,i)=>draw(x,s,i,(i%2)*640,H+Math.floor(i/2)*420,640,420));
   const nm="欠点報告_"+ymd(),blob=await new Promise(r=>c.toBlob(r,"image/png"));
-  const files=[new File([blob],nm+".png",{type:"image/png"}),new File(["\ufeff"+csv()],nm+".csv",{type:"text/csv"})];
+  const files=[new File([blob],nm+".png",{type:"image/png"}),new File(["\ufeff"+csv()],nm+".csv",{type:"text/csv"}),new File([exJ()],nm+".json",{type:"application/json"})];
   try{if(navigator.canShare&&navigator.canShare({files})){await navigator.share({files,title:nm,text:summary()});return}}catch(e){if(e.name=="AbortError")return}
   $("oi").hidden=false;$("oi").src=c.toDataURL("image/png");$("ot").value=summary()+"\n\n"+csv();$("ov").hidden=false};
+document.addEventListener("focusin",e=>{const x=e.target;if(x.tagName=="INPUT"&&x.type=="number")setTimeout(()=>{try{x.select()}catch(_){}},0)});
 render();
 </script></body></html>
