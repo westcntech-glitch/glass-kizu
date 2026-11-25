@@ -52,7 +52,7 @@ th{color:var(--mut);font-weight:600;position:sticky;top:0;background:var(--bg)}
 <div id="empty">エクスポートしたJSONファイルを、「データを開く」またはこの画面へのドラッグ&ドロップで読み込んでください。</div>
 <main id="mn" hidden>
 <div class="col"><h3>ガラスのリスト</h3><div id="gl"></div></div>
-<div class="col"><h3>板の全体</h3><canvas id="cv" width="800" height="500"></canvas><div id="lg"></div><h3>欠点リスト(クリックで拡大。↑↓キーでも選択)</h3><table><thead><tr><th>No.</th><th>面</th><th>種類</th><th>個数</th><th>位置</th><th>状態・サイズ</th></tr></thead><tbody id="dl"></tbody></table></div>
+<div class="col"><h3>板の全体</h3><canvas id="cv" width="800" height="500"></canvas><div id="lg"></div><h3>欠点リスト(クリックで拡大。↑↓キーでも選択)</h3><table><thead><tr><th>No.</th><th>面</th><th>種類</th><th>位置</th><th>状態・サイズ</th></tr></thead><tbody id="dl"></tbody></table></div>
 <div class="col"><h3>拡大図</h3><canvas id="cz" width="800" height="500"></canvas><div id="dt"></div></div>
 </main>
 <div id="rd" hidden><div class="rc"><h3>不具合発生通知書の出力</h3><p id="rn"></p><div class="rg" id="rgd"></div><div class="rr"><button class="pri" id="rgo">出力</button><button id="rx">閉じる</button></div></div></div>
@@ -63,20 +63,22 @@ const CP={赤:"#dc2626",青:"#2563eb",黄:"#facc15",黒:"#111111",紫:"#9333ea",
 const TDEF={キズ:"赤",膜ハゲ:"青",汚れ:"黄",ガラス粉:"緑",異物:"紫",アワ:"水色","ハマ・カケ":"黒",ソゲ:"橙",その他:"茶"};
 const T=TDEF,DR=["指定なし","横方向","縦方向","斜め"],DM=["指定なし","長さ","大きさ","幅","深さ"],MG={"ハマ":"ハマ・カケ","ハゲ":"膜ハゲ"};
 let F=["非搬送面","搬送面"],EMB=false,COL=Object.assign({},TDEF);const cn=t=>COL[t]||T[t]||"黒",colOf=t=>CP[cn(t)],txtOf=t=>CT[cn(t)];
-let OTH="";const tn=d=>d.t=="その他"?OTH:d.t,tname=t=>t=="その他"&&OTH?OTH:t,stx=d=>[d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s||""].filter(Boolean).join(" ");
+const tn=d=>d.t=="その他"?(d.tx!=null?d.tx:"その他"):d.t,tname=t=>t,stx=d=>[d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s||""].filter(Boolean).join(" ");
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 let D=null,cur=0,sel=-1;
-const pos=d=>(d.xr?"右":"左")+"から"+d.x+"mm / "+(d.yr?"下":"上")+"から"+d.y+"mm";
+const pos=d=>(d.xr?"右":"左")+"から"+d.x+"mm / "+(d.yr?"下":"上")+"から"+d.y+"mm"+(d.ln?" → 終点 "+(d.xr2?"右":"左")+"から"+d.x2+"mm / "+(d.yr2?"下":"上")+"から"+d.y2+"mm(長さ約"+d.len+"mm)":"");
+const posS=d=>(d.xr?"右":"左")+d.x+"/"+(d.yr?"下":"上")+d.y+(d.ln?" → "+(d.xr2?"右":"左")+d.x2+"/"+(d.yr2?"下":"上")+d.y2+" 長さ約"+d.len+"mm":"");
 const leg=A=>[...new Set(A.flatMap(s=>s.d.map(d=>d.t)))].map(t=>'<span style="margin-right:14px;white-space:nowrap"><span class="sw" style="background:'+colOf(t)+'"></span>'+cn(t)+"="+tname(t)+"</span>").join("");
-const lbl=(d,j)=>(j+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.n>1?"×"+d.n:"")+(stx(d)?" "+stx(d):"");
+const lbl=(d,j,nl)=>(j+1)+". "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.ln&&!nl?" 長さ約"+d.len+"mm":"")+(stx(d)?" "+stx(d):"");
 const sumTxt=(d,i)=>lbl(d,i)+"  "+pos(d);
 function geo(s,bx,by,bw,bh,v){
   if(v){const k=Math.min(bw/(v.x1-v.x0),bh/(v.y1-v.y0));return{k,ox:bx-v.x0*k,oy:by-v.y0*k,gw:s.w*k,gh:s.h*k}}
   const k=Math.min((bw-96)/s.w,(bh-100)/s.h),gw=s.w*k,gh=s.h*k;return{k,gw,gh,ox:bx+(bw-gw)/2,oy:by+52+(bh-96-gh)/2}}
 function zview(s,d){
-  const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,ex=d.xr?s.w:0,ey=d.yr?s.h:0;
-  let x0=Math.min(ax,ex),x1=Math.max(ax,ex),y0=Math.min(ay,ey),y1=Math.max(ay,ey);
+  const pts=[[d.xr,d.x,d.yr,d.y]];if(d.ln)pts.push([d.xr2,d.x2,d.yr2,d.y2]);
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  pts.forEach(a=>{const ax=a[0]?s.w-a[1]:a[1],ay=a[2]?s.h-a[3]:a[3],ex=a[0]?s.w:0,ey=a[2]?s.h:0;x0=Math.min(x0,ax,ex);x1=Math.max(x1,ax,ex);y0=Math.min(y0,ay,ey);y1=Math.max(y1,ay,ey)});
   const mx=Math.max((x1-x0)*.35,60),my=Math.max((y1-y0)*.35,60);x0-=mx;x1+=mx;y0-=my;y1+=my;
   const w=x1-x0,h=y1-y0,a=1.6;
   if(w/h<a){const nw=h*a;x0-=(nw-w)/2;x1=x0+nw}else{const nh=w/a;y0-=(nh-h)/2;y1=y0+nh}
@@ -92,44 +94,48 @@ function draw(c,s,i,bx,by,bw,bh,o){
   c.save();c.beginPath();c.rect(bx,by,bw,bh);c.clip();
   c.fillStyle="#fff";c.fillRect(bx,by,bw,bh);
   if(v)lab(c,"拡大",bx+10,by+20*m,13*m,"#64748b","left");else lab(c,"No."+(i+1)+"   "+s.w+" × "+s.h,bx+12,by+24*m,16*m,"#111","left");
-  if(!v&&D&&D.dir)arrow(c,bx+bw-50*m,by+28*m,D.dir,m);
+  if(!v&&D&&D.dir&&D.dir!="パレット積載図")arrow(c,bx+bw-50*m,by+28*m,D.dir,m);
   c.beginPath();
   if(s.sh=="circle")c.ellipse(ox+gw/2,oy+gh/2,gw/2,gh/2,0,0,7);else c.rect(ox,oy,gw,gh);
   c.fillStyle="#f1f5f9";c.fill();c.lineWidth=2;c.strokeStyle="#111";c.stroke();
+  if(!v&&D&&D.dir=="パレット積載図"){lab(c,"パレット積載図",bx+bw-12*m,by+24*m,14*m,"#92400e","right");c.fillStyle="#b45309";c.fillRect(ox-8*m,oy+gh,gw+16*m,10*m);c.fillStyle="#78350f";c.fillRect(ox-8*m,oy+gh+10*m,gw+16*m,3*m)}
   if(s.none&&!v)lab(c,"欠点なし",ox+gw/2,oy+gh/2+8,24*m,"#94a3b8");
   c.lineWidth=1;
   s.d.forEach((d,j)=>{
     if(o.only!=null&&o.only!==j)return;
-    const ax=d.xr?s.w-d.x:d.x,ay=d.yr?s.h-d.y:d.y,px=ox+ax*k,py=oy+ay*k,ex=d.xr?ox+gw:ox,ey=d.yr?oy+gh:oy,col=colOf(d.t),r=(v?9:7)*m;
-    if(!o.compact||v||o.hi===j||o.lines){
-      c.strokeStyle="#64748b";c.setLineDash([4,3]);ln(c,px,py,ex,py);ln(c,px,py,px,ey);c.setLineDash([]);
-      lab(c,d.x,(px+ex)/2,py-4,fs,"#475569");
-      c.save();c.translate(px-4,(py+ey)/2);c.rotate(-Math.PI/2);lab(c,d.y,0,0,fs,"#475569");c.restore()}
-    c.fillStyle=col;
-    if(d.f){c.fillRect(px-r,py-r,2*r,2*r)}else{c.beginPath();c.arc(px,py,r,0,7);c.fill()}
-    c.strokeStyle="rgba(0,0,0,.6)";c.lineWidth=1;if(d.f)c.strokeRect(px-r,py-r,2*r,2*r);else{c.beginPath();c.arc(px,py,r,0,7);c.stroke()}
-    if(o.hi===j){c.lineWidth=2.5;c.strokeStyle="#dc2626";c.beginPath();c.arc(px,py,r+4,0,7);c.stroke();c.beginPath();c.arc(px,py,r+9,0,7);c.stroke();c.lineWidth=1}
-    const right=px-bx<bw*.65,L=o.compact&&!v?String(j+1):lbl(d,j);
-    lab(c,L,px+(right?r+4:-r-4),py-r-2,(v?15:13)*m,txtOf(d.t),right?"left":"right");
+    const col=colOf(d.t),r=(v?9:7)*m,P=[[d.xr,d.x,d.yr,d.y]];if(d.ln)P.push([d.xr2,d.x2,d.yr2,d.y2]);
+    const Q=P.map(a=>{const ax=a[0]?s.w-a[1]:a[1],ay=a[2]?s.h-a[3]:a[3];return{px:ox+ax*k,py:oy+ay*k,ex:a[0]?ox+gw:ox,ey:a[2]?oy+gh:oy,dx:a[1],dy:a[3]}});
+    if(!o.compact||v||o.hi===j||o.lines){[Q[0]].forEach(q=>{c.strokeStyle="#64748b";c.lineWidth=1;c.setLineDash([4,3]);ln(c,q.px,q.py,q.ex,q.py);ln(c,q.px,q.py,q.px,q.ey);c.setLineDash([]);
+      lab(c,q.dx,(q.px+q.ex)/2,q.py-4,fs,"#475569");c.save();c.translate(q.px-4,(q.py+q.ey)/2);c.rotate(-Math.PI/2);lab(c,q.dy,0,0,fs,"#475569");c.restore()})}
+    if(d.ln){c.lineCap="round";c.strokeStyle="rgba(0,0,0,.6)";c.lineWidth=(v?6:5)*m;ln(c,Q[0].px,Q[0].py,Q[1].px,Q[1].py);c.strokeStyle=col;c.lineWidth=(v?4:3)*m;ln(c,Q[0].px,Q[0].py,Q[1].px,Q[1].py);c.lineCap="butt";c.lineWidth=1}
+    if(d.ln&&d.len>0&&(!o.compact||v||o.hi===j||o.lines)){const a0=Math.atan2(Q[1].py-Q[0].py,Q[1].px-Q[0].px);let nx=-Math.sin(a0),ny=Math.cos(a0);const sy=d.yr?-1:1;if(ny*sy<0||(Math.abs(ny)<1e-6&&nx<0)){nx=-nx;ny=-ny}
+      const ta=(a0>Math.PI/2||a0<=-Math.PI/2)?a0+Math.PI:a0,off=(v?15:12)*m;
+      c.save();c.translate((Q[0].px+Q[1].px)/2+nx*off,(Q[0].py+Q[1].py)/2+ny*off);c.rotate(ta);c.font="bold "+((v?14:12)*m)+"px sans-serif";c.textAlign="center";c.textBaseline="middle";c.lineWidth=3;c.strokeStyle="#fff";c.strokeText(d.len+"mm",0,0);c.fillStyle="#111";c.fillText(d.len+"mm",0,0);c.restore()}
+    Q.forEach((q,i)=>{const rr=i?r*.7:r;c.fillStyle=col;if(d.f){c.fillRect(q.px-rr,q.py-rr,2*rr,2*rr)}else{c.beginPath();c.arc(q.px,q.py,rr,0,7);c.fill()}
+      c.strokeStyle="rgba(0,0,0,.6)";c.lineWidth=1;if(d.f)c.strokeRect(q.px-rr,q.py-rr,2*rr,2*rr);else{c.beginPath();c.arc(q.px,q.py,rr,0,7);c.stroke()}});
+    const px=Q[0].px,py=Q[0].py;
+    if(o.hi===j&&!v){c.lineWidth=2.5;c.strokeStyle="#dc2626";c.beginPath();c.arc(px,py,r+4,0,7);c.stroke();c.beginPath();c.arc(px,py,r+9,0,7);c.stroke();c.lineWidth=1}
+    const right=px-bx<bw*.65;
+    lab(c,o.compact&&!v&&o.hi!==j?String(j+1):lbl(d,j,1),px+(right?r+4:-r-4),py-r-2,(v?15:13)*m,txtOf(d.t),right?"left":"right");
   });
   c.restore();
 }
 function load(j){
   if(!j||!Array.isArray(j.sheets)||!j.sheets.length)throw 0;
-  j.sheets.forEach(s=>{if(s.sh!="circle")s.sh="rect";s.d=(s.d||[]).map(d=>{d=Object.assign({f:0,n:1,s:"",dr:0,dm:0,xr:0,yr:0,x:0,y:0},d);d.t=MG[d.t]||d.t;if(!T[d.t])d.t="その他";return d})});
+  j.sheets.forEach(s=>{if(s.sh!="circle")s.sh="rect";s.d=(s.d||[]).map(d=>{d=Object.assign({f:0,s:"",dr:0,dm:0,ln:0,xr:0,yr:0,x:0,y:0},d);if(d.ln){d.xr2=d.xr2||0;d.yr2=d.yr2||0;d.x2=d.x2||0;d.y2=d.y2||0;const a=[d.xr?s.w-d.x:d.x,d.yr?s.h-d.y:d.y],b=[d.xr2?s.w-d.x2:d.x2,d.yr2?s.h-d.y2:d.y2];d.len=Math.round(Math.hypot(a[0]-b[0],a[1]-b[1]))}d.t=MG[d.t]||d.t;if(!T[d.t])d.t="その他";return d})});
   if(Array.isArray(j.face)&&j.face.length==2)F=j.face;
-  OTH=j.oth||"";COL=Object.assign({},TDEF);if(j.col&&typeof j.col=="object")Object.keys(j.col).forEach(t=>{if(T[t]&&CP[j.col[t]])COL[t]=j.col[t]});
+  COL=Object.assign({},TDEF);if(j.col&&typeof j.col=="object")Object.keys(j.col).forEach(t=>{if(T[t]&&CP[j.col[t]])COL[t]=j.col[t]});
   D=j;cur=0;sel=-1;if(!EMB)try{localStorage.setItem("ktv",JSON.stringify(j))}catch(e){}show()}
 function show(){
   $("empty").hidden=!!D;$("mn").hidden=!D;if(!D)return;
   const s=D.sheets[cur];
   $("info").textContent=(D.memo||"")+"  "+(D.date||"");
   $("gl").innerHTML=D.sheets.map((t,i)=>'<button data-i="'+i+'"'+(i==cur?' class="on"':'')+'>No.'+(i+1)+'<small>'+t.w+'×'+t.h+'  '+(t.d.length?'欠点'+t.d.length+'件':'欠点なし')+'</small></button>').join("");
-  $("dl").innerHTML=s.d.map((d,j)=>'<tr data-j="'+j+'"'+(j==sel?' class="on"':'')+'><td>'+(j+1)+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+" ("+cn(d.t)+")"+'</td><td>'+d.n+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join("")||'<tr><td colspan="6">欠点なし</td></tr>';
+  $("dl").innerHTML=s.d.map((d,j)=>'<tr data-j="'+j+'"'+(j==sel?' class="on"':'')+'><td>'+(j+1)+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+" ("+cn(d.t)+")"+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join("")||'<tr><td colspan="4">欠点なし</td></tr>';
   draw($("cv").getContext("2d"),s,cur,0,0,800,500,{hi:sel,compact:true});
   const z=$("cz").getContext("2d"),d=s.d[sel];
   if(d){draw(z,s,cur,0,0,800,500,{only:sel,view:zview(s,d)});
-    $("dt").innerHTML="<b>"+esc(sumTxt(d,sel))+"</b><br>面: "+F[d.f]+" / 種類: "+esc(tn(d))+" ("+cn(d.t)+")"+" / 個数: "+d.n+"<br>位置: "+pos(d)+"<br>状態・サイズ: "+(esc(stx(d))||"-")}
+    $("dt").innerHTML="<b>"+esc(sumTxt(d,sel))+"</b><br>面: "+F[d.f]+" / 種類: "+esc(tn(d))+" ("+cn(d.t)+")"+"<br>位置: "+pos(d)+"<br>状態・サイズ: "+(esc(stx(d))||"-")}
   else{z.fillStyle="#fff";z.fillRect(0,0,800,500);lab(z,"欠点リストから選択してください",400,250,22,"#94a3b8");$("dt").textContent=""}
   $("lg").innerHTML=leg([s])
 }
@@ -146,15 +152,15 @@ function img(s,i,o,w,h){const c=document.createElement("canvas");c.width=w;c.hei
 const head=()=>'<div style="font-size:11px;color:#444">欠点報告  '+esc(D.memo||"")+'  '+esc(D.date||"")+'</div>';
 function page(s,i,zm){
   return'<section class="pg">'+head()+leg([s])+'<h2>No.'+(i+1)+'  '+s.w+'×'+s.h+(s.d.length?'':'  欠点なし')+'</h2>'+img(s,i,{compact:true,f:1.3},1000,620)+
-  (s.d.length?'<table><tr><th>No.</th><th>面</th><th>種類</th><th>個数</th><th>位置</th><th>状態・サイズ</th></tr>'+s.d.map((d,j)=>'<tr><td>'+(j+1)+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+" ("+cn(d.t)+")"+'</td><td>'+d.n+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join("")+'</table>':'')+
+  (s.d.length?'<table><tr><th>No.</th><th>面</th><th>種類</th><th>位置</th><th>状態・サイズ</th></tr>'+s.d.map((d,j)=>'<tr><td>'+(j+1)+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+" ("+cn(d.t)+")"+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join("")+'</table>':'')+
   (zm&&s.d.length?'<div class="zg">'+s.d.map((d,j)=>'<figure>'+img(s,i,{only:j,view:zview(s,d),f:1.1},640,400)+'<figcaption>'+esc(sumTxt(d,j))+'</figcaption></figure>').join("")+'</div>':'')+'</section>'}
 $("pb").onclick=()=>{
   if(!D){alert("先にデータを開いてください");return}
   const m=$("pm").value,zm=$("pz").checked;let h;
   if(m=="one")h=page(D.sheets[cur],cur,zm);
   else if(m=="all")h=D.sheets.map((s,i)=>page(s,i,zm)).join("");
-  else h='<section class="pg">'+head()+leg(D.sheets)+'<table><tr><th>符号</th><th>寸法</th><th>面</th><th>種類</th><th>個数</th><th>位置</th><th>状態・サイズ</th></tr>'+
-    D.sheets.map((s,i)=>s.d.length?s.d.map(d=>'<tr><td>No.'+(i+1)+'</td><td>'+s.w+'×'+s.h+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+" ("+cn(d.t)+")"+'</td><td>'+d.n+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join(""):'<tr><td>No.'+(i+1)+'</td><td>'+s.w+'×'+s.h+'</td><td colspan="5">欠点なし</td></tr>').join("")+'</table></section>';
+  else h='<section class="pg">'+head()+leg(D.sheets)+'<table><tr><th>符号</th><th>寸法</th><th>面</th><th>種類</th><th>位置</th><th>状態・サイズ</th></tr>'+
+    D.sheets.map((s,i)=>s.d.length?s.d.map(d=>'<tr><td>No.'+(i+1)+'</td><td>'+s.w+'×'+s.h+'</td><td>'+F[d.f]+'</td><td>'+esc(tn(d))+" ("+cn(d.t)+")"+'</td><td>'+pos(d)+'</td><td>'+esc(stx(d))+'</td></tr>').join(""):'<tr><td>No.'+(i+1)+'</td><td>'+s.w+'×'+s.h+'</td><td colspan="5">欠点なし</td></tr>').join("")+'</table></section>';
   $("pa").innerHTML=h;let st=document.getElementById("pst");if(!st){st=document.createElement("style");st.id="pst";document.head.appendChild(st)}
   st.textContent="@page{size:A4 "+$("po").value+";margin:10mm}";
   const t0=document.title;document.title="欠点報告_"+ymd();window.onafterprint=()=>{document.title=t0};
@@ -220,7 +226,7 @@ $("rgo").onclick=async()=>{
   if(!s.d.length&&!confirm("この板には欠点がありません。このまま出力しますか?"))return;
   const dt=x=>{const m=(x||"").match(/^(\d+)-(\d+)-(\d+)$/);return m?[m[1],String(+m[2]),String(+m[3])]:["","",""]},h=dt(v.hassei),n=dt(v.nouhin),num=x=>x===""||isNaN(+x)?x:+x,TM={"キズ":"キズ","ハマ・カケ":"カケ","アワ":"泡","異物":"異物"};
   let lines=[];
-  s.d.forEach((d,j)=>{const t=(j+1)+".["+cn(d.t)+"] "+F[d.f]+(tn(d)?" "+tn(d):"")+(d.n>1?"×"+d.n:"")+" "+(d.xr?"右":"左")+d.x+"/"+(d.yr?"下":"上")+d.y+(stx(d)?" "+stx(d):"");for(let i=0;i<t.length;i+=34)lines.push((i?"    ":"")+t.slice(i,i+34))});
+  s.d.forEach((d,j)=>{const t=(j+1)+".["+cn(d.t)+"] "+F[d.f]+(tn(d)?" "+tn(d):"")+" "+posS(d)+(stx(d)?" "+stx(d):"");for(let i=0;i<t.length;i+=34)lines.push((i?"    ":"")+t.slice(i,i+34))});
   if(lines.length>6){lines=lines.slice(0,5);lines.push("…ほか(全体図の番号を参照)")}
   const map={B3:v.maker,B5:v.plant,F3:v.juchu,F4:v.shiji,F5:v.tanto,B7:[...new Set(s.d.map(d=>TM[d.t]||tname(d.t)))].join("・"),E7:h[0],F7:h[1],G7:h[2],B8:v.bukken,E8:n[0],F8:n[1],G8:n[2],A10:v.hatchu,B10:num(v.gyo),C10:v.hinshu,D10:s.w,E10:s.h,F10:num(v.mai),B30:v.nisugata,B31:v.hakken?"開梱":"",C31:v.hakken?v.hakken.slice(2):""};
   if(v.kikaku)map.B28=v.kikaku;if(v.driver)map.A29="納入時のドライバー確認：　"+v.driver;
@@ -228,13 +234,15 @@ $("rgo").onclick=async()=>{
   const c=document.createElement("canvas");c.width=1000;c.height=620;draw(c.getContext("2d"),s,cur,0,0,1000,620,{compact:true,lines:true,f:1.3});
   const b=await new Promise(r=>c.toBlob(r,"image/png")),img={u:new Uint8Array(await b.arrayBuffer()),w:1000,h:620};
   dl(buildReport(b64u8(REP.tpl),map,img,lines.length),"素板不具合発生通知書_No"+(cur+1)+"_"+ymd()+".xlsx","application/octet-stream");$("rd").hidden=true};
+function csvText(SH){
+  const r=[["符号","形状","寸法W","寸法H","面","欠点種別","色","X基準","X距離","Y基準","Y距離","形式","終点X基準","終点X距離","終点Y基準","終点Y距離","長さ(mm)","方向","寸法種別","状態・サイズ"]];
+  SH.forEach((s,i)=>{const b=["No."+(i+1),s.sh=="circle"?"丸形":"矩形",s.w,s.h];
+    if(!s.d.length)r.push(b.concat(["","なし"].concat(Array(14).fill(""))));
+    s.d.forEach(d=>r.push(b.concat([F[d.f],d.t=="その他"?(tn(d)||"その他"):d.t,cn(d.t),d.xr?"右":"左",d.x,d.yr?"下":"上",d.y,d.ln?"線":"点",d.ln?(d.xr2?"右":"左"):"",d.ln?d.x2:"",d.ln?(d.yr2?"下":"上"):"",d.ln?d.y2:"",d.ln?d.len:"",d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s])))});
+  return r.map(a=>a.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n")}
 $("cb").onclick=()=>{
   if(!D){alert("先にデータを開いてください");return}
-  const r=[["符号","形状","寸法W","寸法H","面","欠点種別","色","個数","X基準","X距離","Y基準","Y距離","方向","寸法種別","状態・サイズ"]];
-  D.sheets.forEach((s,i)=>{const b=["No."+(i+1),s.sh=="circle"?"丸形":"矩形",s.w,s.h];
-    if(!s.d.length)r.push(b.concat(["","なし","","","","","","","","",""]));
-    s.d.forEach(d=>r.push(b.concat([F[d.f],tname(d.t),cn(d.t),d.n,d.xr?"右":"左",d.x,d.yr?"下":"上",d.y,d.dr?DR[d.dr]:"",d.dm?DM[d.dm]:"",d.s])))});
-  dl("\ufeff"+r.map(a=>a.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\r\n"),"欠点一覧_"+ymd()+".csv","text/csv")};
+  dl("\ufeff"+csvText(D.sheets),"欠点一覧_"+ymd()+".csv","text/csv")};
 $("eb").onclick=()=>{
   if(!D){alert("先にデータを開いてください");return}
   const h=document.documentElement.cloneNode(true);
